@@ -248,12 +248,32 @@ export default function DeadlineRadarApp() {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {filteredCafes.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-sm font-semibold text-slate-700 mb-1">
-                  Không tìm thấy quán nào khớp bộ lọc
-                </p>
-                <p className="text-xs text-slate-500">
-                  Thử bỏ bớt 1–2 tiêu chí hoặc chọn “Tất cả quận” nhé!
-                </p>
+                {allCafes.length === 0 ? (
+                  <>
+                    <p className="text-sm font-bold text-slate-800 mb-1">
+                      Chưa có dữ liệu quán được xác thực
+                    </p>
+                    <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                      CafeRadar chỉ hiển thị đánh giá thật từ nguồn uy tín (Google Maps, Threads, Facebook) — tuyệt đối không tự chế dữ liệu.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer"
+                    >
+                      + Đóng góp quán đầu tiên
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-slate-700 mb-1">
+                      Không tìm thấy quán nào khớp bộ lọc
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Thử bỏ bớt 1–2 tiêu chí hoặc chọn “Tất cả quận” nhé!
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               filteredCafes.map((cafe) => {
