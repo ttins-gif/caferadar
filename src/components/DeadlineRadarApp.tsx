@@ -15,17 +15,21 @@ import {
 import { SEED_CAFES } from "@/data/seedCafes";
 import {
   Cafe,
+  CafeReview,
   CHECKIN_META,
   CheckInStatusType,
   LiveCheckIn,
   QuickFilters,
 } from "@/types/cafe";
 import {
+  addReview,
   deleteCafeById,
   deleteCheckInById,
+  deleteReviewById,
   loadActiveCheckIns,
   loadFavorites,
   loadMergedCafes,
+  loadReviews,
   loadUserCafes,
   saveCafeOverride,
   saveCheckIns,
@@ -71,6 +75,7 @@ export default function DeadlineRadarApp() {
   const [role, setRole] = useState<UserRole>("user");
   const [allCafes, setAllCafes] = useState<Cafe[]>(SEED_CAFES);
   const [checkIns, setCheckIns] = useState<LiveCheckIn[]>([]);
+  const [reviews, setReviews] = useState<CafeReview[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(
@@ -101,6 +106,7 @@ export default function DeadlineRadarApp() {
     syncRole();
     setAllCafes(loadMergedCafes(SEED_CAFES));
     setCheckIns(loadActiveCheckIns());
+    setReviews(loadReviews());
     setFavorites(loadFavorites());
 
     window.addEventListener("caferadar-role-change", syncRole);
@@ -206,6 +212,14 @@ export default function DeadlineRadarApp() {
 
   const handleDeleteCheckIn = (checkInId: string) => {
     setCheckIns(deleteCheckInById(checkInId));
+  };
+
+  const handleAddReview = (review: CafeReview) => {
+    setReviews(addReview(review));
+  };
+
+  const handleDeleteReview = (reviewId: string) => {
+    setReviews(deleteReviewById(reviewId));
   };
 
   const handleToggleFavorite = (cafeId: string) => {
@@ -433,6 +447,9 @@ export default function DeadlineRadarApp() {
                 onEditCafe={(c) => setEditingCafe(c)}
                 onDeleteCafe={handleDeleteCafe}
                 onDeleteCheckIn={handleDeleteCheckIn}
+                reviews={reviews.filter((r) => r.cafeId === selectedCafe.id)}
+                onAddReview={handleAddReview}
+                onDeleteReview={handleDeleteReview}
                 distanceKm={
                   userLocation
                     ? haversineKm(
