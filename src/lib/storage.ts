@@ -1,6 +1,7 @@
-import { Cafe, LiveCheckIn } from "@/types/cafe";
+import { Cafe, CafeReview, LiveCheckIn } from "@/types/cafe";
 
 export const CHECKINS_STORAGE_KEY = "caferadar_checkins_v1";
+export const REVIEWS_STORAGE_KEY = "caferadar_reviews_v1";
 export const USER_CAFES_STORAGE_KEY = "caferadar_user_cafes_v1";
 export const FAVORITES_STORAGE_KEY = "caferadar_favorites_v1";
 export const CAFE_OVERRIDES_STORAGE_KEY = "caferadar_cafe_overrides_v1";
@@ -135,4 +136,34 @@ export function saveFavorites(ids: string[]) {
   } catch {
     // ignore
   }
+}
+
+export function loadReviews(): CafeReview[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(REVIEWS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function addReview(review: CafeReview): CafeReview[] {
+  const next = [review, ...loadReviews()];
+  try {
+    localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+  return next;
+}
+
+export function deleteReviewById(reviewId: string): CafeReview[] {
+  const next = loadReviews().filter((r) => r.id !== reviewId);
+  try {
+    localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+  return next;
 }
