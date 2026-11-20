@@ -384,28 +384,30 @@ export default function DeadlineRadarApp() {
           )}
         </section>
 
-        {/* Mobile Map/List Toggle Pill */}
-        <div className="lg:hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[600]">
-          <button
-            type="button"
-            onClick={() =>
-              setMobileView((v) => (v === "map" ? "list" : "map"))
-            }
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-lg cursor-pointer"
-          >
-            {mobileView === "map" ? (
-              <>
-                <List className="w-4 h-4" />
-                Xem danh sách ({filteredCafes.length})
-              </>
-            ) : (
-              <>
-                <MapIcon className="w-4 h-4" />
-                Xem bản đồ
-              </>
-            )}
-          </button>
-        </div>
+        {/* Mobile Map/List Toggle Pill (hidden when scorecard is open on mobile) */}
+        {(!selectedCafe || mobileView === "list") && (
+          <div className="lg:hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[600]">
+            <button
+              type="button"
+              onClick={() =>
+                setMobileView((v) => (v === "map" ? "list" : "map"))
+              }
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-lg cursor-pointer"
+            >
+              {mobileView === "map" ? (
+                <>
+                  <List className="w-4 h-4" />
+                  Xem danh sách ({filteredCafes.length})
+                </>
+              ) : (
+                <>
+                  <MapIcon className="w-4 h-4" />
+                  Xem bản đồ
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </main>
 
       {showAddModal && (
