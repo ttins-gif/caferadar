@@ -40,7 +40,7 @@ export default function Navbar({ onOpenAddModal }: NavbarProps) {
                 CafeRadar
               </span>
               <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                TP.HCM
+                Việt Nam
               </span>
             </div>
             <p className="text-[11px] text-slate-500 hidden md:block">
