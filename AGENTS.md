@@ -12,3 +12,7 @@
 
 ## 3. Môi trường Windows PowerShell
 - Luôn dùng `npm.cmd` và `npx.cmd` thay cho `npm` / `npx` (tránh lỗi PowerShell ExecutionPolicy).
+
+## 4. Trung thực dữ liệu đánh giá (Không tự chế)
+- Mọi dữ liệu quán & đánh giá phải có nguồn uy tín (Google Maps, Threads, Facebook, hoặc trải nghiệm thực tế của người dùng).
+- Tuyệt đối không tự ý chế đánh giá, tốc độ Wi-Fi, hay check-in giả; nếu chưa có dữ liệu thật thì để trống.
