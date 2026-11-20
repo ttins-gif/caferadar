@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import L from "leaflet";
 import { Cafe, CHECKIN_META, LiveCheckIn } from "@/types/cafe";
+import vnmGeo from "@/data/vnm.geo.json";
 
 interface CafeMapProps {
   cafes: Cafe[];
@@ -20,18 +21,30 @@ const VIETNAM_BOUNDS: L.LatLngBoundsExpression = [
   [24.0, 118.5],
 ];
 
+const WORLD_OUTER: [number, number][] = [
+  [-90, -180],
+  [-90, 180],
+  [90, 180],
+  [90, -180],
+];
+
+// Chuyển tọa độ [lng, lat] từ GeoJSON ranh giới thực của Việt Nam sang [lat, lng] cho Leaflet
+const VIETNAM_BORDER_RING: [number, number][] = (
+  vnmGeo.features[0].geometry.coordinates[0] as number[][]
+).map(([lng, lat]) => [lat, lng]);
+
 const SOVEREIGNTY_ISLANDS = [
   {
     name: "Quần đảo Hoàng Sa",
     sub: "Đà Nẵng, Việt Nam",
     coords: [16.5, 112.0] as [number, number],
-    coverRadiusMeters: 160000,
+    coverRadiusMeters: 150000,
   },
   {
     name: "Quần đảo Trường Sa",
     sub: "Khánh Hòa, Việt Nam",
     coords: [10.0, 114.5] as [number, number],
-    coverRadiusMeters: 280000,
+    coverRadiusMeters: 240000,
   },
 ];
 
@@ -69,14 +82,26 @@ export default function CafeMap({
       noWrap: true,
     }).addTo(map);
 
-    // Che sạch nhãn tiếng nước ngoài quanh khu vực Hoàng Sa & Trường Sa bằng màu biển OSM (#aad3df),
-    // sau đó hiển thị nhãn chủ quyền tiếng Việt rõ ràng
+    // Che trắng hoàn toàn (#ffffff) mọi phần ngoài ranh giới đất liền Việt Nam
+    L.polygon([WORLD_OUTER, VIETNAM_BORDER_RING], {
+      color: "#94a3b8",
+      weight: 1.5,
+      opacity: 0.7,
+      fillColor: "#ffffff",
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(map);
+
+    // Hiển thị vùng biển & nhãn chủ quyền Quần đảo Hoàng Sa & Quần đảo Trường Sa (Việt Nam), không có chữ tiếng nước ngoài
     SOVEREIGNTY_ISLANDS.forEach((island) => {
       L.circle(island.coords, {
         radius: island.coverRadiusMeters,
-        stroke: false,
-        fillColor: "#aad3df",
-        fillOpacity: 1,
+        color: "#dc2626",
+        weight: 1,
+        dashArray: "4 4",
+        opacity: 0.45,
+        fillColor: "#dbeafe",
+        fillOpacity: 0.85,
         interactive: false,
       }).addTo(map);
 
