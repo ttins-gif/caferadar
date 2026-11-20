@@ -30,7 +30,7 @@ export default function PartnerPage() {
             Kéo khách freelancer & dân văn phòng vào khung giờ vắng
           </h1>
           <p className="text-sm sm:text-base text-slate-600 mt-3">
-            CafeRadar kết nối đúng tệp khách hàng sẵn sàng chi tiêu đều đặn từ sáng thứ 2 đến thứ 6 tại TP.HCM.
+            CafeRadar kết nối đúng tệp khách hàng sẵn sàng chi tiêu đều đặn từ sáng thứ 2 đến thứ 6 trên toàn quốc.
           </p>
         </section>
 
