@@ -9,16 +9,15 @@ interface AddCafeModalProps {
   onAddCafe: (cafe: Cafe) => void;
 }
 
-const DISTRICT_CENTERS: Record<District, { lat: number; lng: number }> = {
-  "Quận 1": { lat: 10.7769, lng: 106.7009 },
-  "Quận 3": { lat: 10.781, lng: 106.688 },
-  "Bình Thạnh": { lat: 10.802, lng: 106.712 },
-  "Phú Nhuận": { lat: 10.797, lng: 106.681 },
+const DISTRICT_CENTERS: Record<string, { lat: number; lng: number }> = {
+  "Hà Nội": { lat: 21.0285, lng: 105.8542 },
+  "Đà Nẵng": { lat: 16.0544, lng: 108.2022 },
+  "TP.HCM": { lat: 10.7769, lng: 106.7009 },
 };
 
 export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) {
   const [name, setName] = useState("");
-  const [district, setDistrict] = useState<District>("Quận 1");
+  const [district, setDistrict] = useState<District>("TP.HCM");
   const [address, setAddress] = useState("");
   const [openHours, setOpenHours] = useState("07:30 – 22:30");
   const [open24h, setOpen24h] = useState(false);
@@ -40,7 +39,7 @@ export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) 
     e.preventDefault();
     if (!name.trim() || !address.trim()) return;
 
-    const base = DISTRICT_CENTERS[district];
+    const base = DISTRICT_CENTERS[district] ?? { lat: 16.0544, lng: 108.2022 };
     // Small random offset around district center for MVP demo
     const lat = base.lat + (Math.random() - 0.5) * 0.012;
     const lng = base.lng + (Math.random() - 0.5) * 0.012;
@@ -84,7 +83,11 @@ export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) 
       priceRange: priceRange.trim() || "Chưa có dữ liệu",
       staffNote: staffNote.trim(),
       sourceName,
-      sourceUrl: sourceUrl.trim() || undefined,
+      sourceUrl:
+        sourceUrl.trim() ||
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          `${name.trim()} ${address.trim()}`
+        )}`,
       tags: [sourceName],
     };
 
@@ -129,17 +132,16 @@ export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) 
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Quận *
+                Tỉnh / Thành phố *
               </label>
               <select
                 value={district}
                 onChange={(e) => setDistrict(e.target.value as District)}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 outline-none bg-white"
               >
-                <option value="Quận 1">Quận 1</option>
-                <option value="Quận 3">Quận 3</option>
-                <option value="Bình Thạnh">Bình Thạnh</option>
-                <option value="Phú Nhuận">Phú Nhuận</option>
+                <option value="TP.HCM">TP.HCM</option>
+                <option value="Hà Nội">Hà Nội</option>
+                <option value="Đà Nẵng">Đà Nẵng</option>
               </select>
             </div>
           </div>
