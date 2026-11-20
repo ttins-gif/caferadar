@@ -65,8 +65,8 @@ export default function CafeMap({
     if (!mapContainerRef.current || mapRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
-      center: HCMC_CENTER,
-      zoom: 13,
+      center: VIETNAM_CENTER,
+      zoom: 6,
       minZoom: 5,
       maxZoom: 19,
       maxBounds: VIETNAM_BOUNDS,
@@ -218,7 +218,7 @@ export default function CafeMap({
             white-space: nowrap;
           ">
             ${cafe.featured ? "<span>★</span>" : ""}
-            <span>${cafe.score.toFixed(1)}</span>
+            <span>${cafe.score != null ? cafe.score.toFixed(1) : "☕"}</span>
             ${cafe.open24h ? '<span style="font-size:10px;opacity:.9;">24h</span>' : ""}
             ${
               latestAlert
