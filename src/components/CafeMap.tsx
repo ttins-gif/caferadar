@@ -33,6 +33,43 @@ const SOVEREIGNTY_ISLANDS = [
   },
 ];
 
+// Đa giác bao trọn lãnh thổ đất liền & vùng biển Việt Nam (gồm Phú Quốc, Hoàng Sa, Trường Sa)
+const VIETNAM_CUTOUT: [number, number][] = [
+  [22.4, 102.15],
+  [22.8, 103.5],
+  [23.38, 105.3],
+  [22.9, 106.7],
+  [21.6, 107.95],
+  [20.5, 108.5],
+  [18.5, 110.2],
+  [17.6, 113.2],
+  [15.4, 113.4],
+  [12.5, 116.2],
+  [11.8, 117.2],
+  [7.5, 116.0],
+  [7.2, 111.5],
+  [8.2, 104.8],
+  [9.8, 103.4],
+  [10.4, 104.45],
+  [11.0, 105.1],
+  [11.6, 105.9],
+  [12.2, 107.2],
+  [14.7, 107.55],
+  [16.0, 107.2],
+  [17.5, 105.7],
+  [18.9, 104.1],
+  [20.4, 104.4],
+  [21.3, 103.0],
+  [22.4, 102.15],
+];
+
+const WORLD_OUTER: [number, number][] = [
+  [-90, -180],
+  [-90, 180],
+  [90, 180],
+  [90, -180],
+];
+
 export default function CafeMap({
   cafes,
   selectedCafeId,
@@ -65,6 +102,16 @@ export default function CafeMap({
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
       noWrap: true,
+    }).addTo(map);
+
+    // Lớp phủ che toàn bộ các quốc gia khác, chỉ hiển thị rõ Việt Nam + Hoàng Sa & Trường Sa
+    L.polygon([WORLD_OUTER, VIETNAM_CUTOUT], {
+      color: "#dc2626",
+      weight: 1.5,
+      opacity: 0.45,
+      fillColor: "#f1f5f9",
+      fillOpacity: 0.96,
+      interactive: false,
     }).addTo(map);
 
     // Luôn hiển thị nhãn chủ quyền Quần đảo Hoàng Sa & Quần đảo Trường Sa (Việt Nam)
