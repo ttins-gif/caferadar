@@ -29,6 +29,7 @@ import {
   LiveCheckIn,
   NoiseLevel,
 } from "@/types/cafe";
+import { getRealtimeOpenStatus } from "@/lib/realtime";
 
 interface WorkspaceScorecardProps {
   cafe: Cafe;
@@ -113,7 +114,13 @@ export default function WorkspaceScorecard({
     `${cafe.name} ${cafe.address}`
   )}`;
 
-  const powerInfo = POWER_LABEL[cafe.powerOutlets];
+  const powerInfo = cafe.powerOutlets
+    ? POWER_LABEL[cafe.powerOutlets]
+    : {
+        text: "Chưa đo thực tế",
+        cls: "text-slate-600 bg-slate-100 border-slate-200",
+      };
+  const openStatus = getRealtimeOpenStatus(cafe);
 
   return (
     <div className="bg-white h-full flex flex-col overflow-hidden">
@@ -121,8 +128,24 @@ export default function WorkspaceScorecard({
       <div className="p-4 border-b border-slate-200 flex items-start justify-between gap-3 bg-gradient-to-br from-slate-50 to-white">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-600 text-white">
-              {cafe.score.toFixed(1)} / 10
+            {cafe.score != null && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-600 text-white">
+                {cafe.score.toFixed(1)} / 10
+              </span>
+            )}
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${
+                openStatus.isOpen
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-slate-100 text-slate-600 border-slate-200"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  openStatus.isOpen ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                }`}
+              />
+              {openStatus.label}
             </span>
             <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
               {cafe.district}
@@ -246,45 +269,57 @@ export default function WorkspaceScorecard({
           )}
         </section>
 
-        {/* Voucher (if featured) */}
-        {cafe.voucher && (
-          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-            <Ticket className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <span className="font-bold block">Ưu đãi độc quyền</span>
-              <span>{cafe.voucher}</span>
-            </div>
+        {/* Ưu đãi hiện có (Real-time / Xác thực) */}
+        <div
+          className={`flex items-start gap-2.5 p-3 rounded-xl border ${
+            cafe.voucher
+              ? "bg-amber-50 border-amber-200 text-amber-900"
+              : "bg-slate-50 border-slate-200 text-slate-600"
+          }`}
+        >
+          <Ticket
+            className={`w-4 h-4 shrink-0 mt-0.5 ${
+              cafe.voucher ? "text-amber-600" : "text-slate-400"
+            }`}
+          />
+          <div className="text-xs">
+            <span className="font-bold block">Ưu đãi hiện có</span>
+            <span>
+              {cafe.voucher ?? "Chưa có ưu đãi được xác thực từ quán."}
+            </span>
           </div>
-        )}
+        </div>
 
         {/* 1. Độ ồn theo khung giờ */}
-        <section className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-            <Volume2 className="w-4 h-4 text-indigo-500" />
-            <span>Độ ồn theo khung giờ</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {(
-              [
-                ["Sáng", cafe.noise.morning],
-                ["Chiều", cafe.noise.afternoon],
-                ["Tối", cafe.noise.evening],
-              ] as const
-            ).map(([slot, level]) => (
-              <div
-                key={slot}
-                className="rounded-xl border border-slate-200 p-2.5 text-center bg-white"
-              >
-                <div className="text-[11px] text-slate-500 mb-1">{slot}</div>
-                <span
-                  className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${NOISE_LABEL[level].cls}`}
+        {cafe.noise && (
+          <section className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <Volume2 className="w-4 h-4 text-indigo-500" />
+              <span>Độ ồn theo khung giờ</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  ["Sáng", cafe.noise.morning],
+                  ["Chiều", cafe.noise.afternoon],
+                  ["Tối", cafe.noise.evening],
+                ] as const
+              ).map(([slot, level]) => (
+                <div
+                  key={slot}
+                  className="rounded-xl border border-slate-200 p-2.5 text-center bg-white"
                 >
-                  {NOISE_LABEL[level].text}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+                  <div className="text-[11px] text-slate-500 mb-1">{slot}</div>
+                  <span
+                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full border ${NOISE_LABEL[level].cls}`}
+                  >
+                    {NOISE_LABEL[level].text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 2. Tốc độ Wi-Fi & 3. Tỷ lệ ổ cắm */}
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -293,19 +328,33 @@ export default function WorkspaceScorecard({
               <Wifi className="w-4 h-4 text-indigo-500" />
               <span>Wi-Fi thực tế</span>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-bold text-slate-900">
-                {cafe.wifiDownload}
-              </span>
-              <span className="text-xs text-slate-500">Mbps ↓</span>
-              <span className="text-sm font-semibold text-slate-600 ml-1">
-                {cafe.wifiUpload}
-              </span>
-              <span className="text-xs text-slate-400">Mbps ↑</span>
-            </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              Đo gần nhất: {cafe.wifiMeasuredAt}
-            </div>
+            {cafe.wifiDownload != null ? (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-slate-900">
+                    {cafe.wifiDownload}
+                  </span>
+                  <span className="text-xs text-slate-500">Mbps ↓</span>
+                  {cafe.wifiUpload != null && (
+                    <>
+                      <span className="text-sm font-semibold text-slate-600 ml-1">
+                        {cafe.wifiUpload}
+                      </span>
+                      <span className="text-xs text-slate-400">Mbps ↑</span>
+                    </>
+                  )}
+                </div>
+                {cafe.wifiMeasuredAt && (
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Đo gần nhất: {cafe.wifiMeasuredAt}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-xs text-slate-500 italic">
+                Chưa có số liệu đo thực tế
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-slate-200 p-3 bg-white">
