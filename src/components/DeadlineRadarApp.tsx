@@ -29,6 +29,7 @@ import {
   saveUserCafes,
   SIX_HOURS_MS,
 } from "@/lib/storage";
+import { getRealtimeOpenStatus } from "@/lib/realtime";
 import Navbar from "./Navbar";
 import QuickFilterBar from "./QuickFilterBar";
 import WorkspaceScorecard from "./WorkspaceScorecard";
@@ -125,7 +126,8 @@ export default function DeadlineRadarApp() {
         return false;
       }
       if (filters.powerEveryTable && c.powerOutlets !== "all") return false;
-      if (filters.fastWifi && c.wifiDownload < 50) return false;
+      if (filters.fastWifi && (c.wifiDownload == null || c.wifiDownload < 50))
+        return false;
       if (filters.open24h && !c.open24h) return false;
       if (filters.quietForCalls && !c.quietForCalls) return false;
       if (filters.ergonomicDesk && !c.ergonomicDesk) return false;
@@ -146,7 +148,7 @@ export default function DeadlineRadarApp() {
       }
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
-      return b.score - a.score;
+      return (b.score ?? 0) - (a.score ?? 0);
     });
   }, [allCafes, filters, userLocation, onlyFavorites, favorites]);
 
@@ -290,6 +292,8 @@ export default function DeadlineRadarApp() {
                     )
                   : null;
 
+                const openStatus = getRealtimeOpenStatus(cafe);
+
                 return (
                   <button
                     key={cafe.id}
@@ -321,15 +325,23 @@ export default function DeadlineRadarApp() {
                           {cafe.district} • {cafe.address}
                         </p>
                       </div>
-                      <span className="shrink-0 px-2 py-0.5 rounded-md text-xs font-bold bg-slate-900 text-white">
-                        {cafe.score.toFixed(1)}
+                      <span
+                        className={`shrink-0 px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                          openStatus.isOpen
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-slate-200 text-slate-600"
+                        }`}
+                      >
+                        {openStatus.isOpen ? "Đang mở" : "Đã đóng"}
                       </span>
                     </div>
 
                     <div className="mt-2 flex items-center flex-wrap gap-2 text-[11px] text-slate-600">
                       <span className="inline-flex items-center gap-1 font-medium">
                         <Wifi className="w-3 h-3 text-indigo-500" />
-                        {cafe.wifiDownload} Mbps
+                        {cafe.wifiDownload != null
+                          ? `${cafe.wifiDownload} Mbps`
+                          : "Wi-Fi: chưa đo"}
                       </span>
                       <span className="inline-flex items-center gap-1 font-medium">
                         <Plug className="w-3 h-3 text-emerald-600" />
@@ -337,7 +349,9 @@ export default function DeadlineRadarApp() {
                           ? "Ổ cắm 100%"
                           : cafe.powerOutlets === "scattered"
                           ? "Sát tường"
-                          : "Ít ổ cắm"}
+                          : cafe.powerOutlets === "rare"
+                          ? "Ít ổ cắm"
+                          : "Ổ cắm: chưa đo"}
                       </span>
                       {cafe.open24h && (
                         <span className="inline-flex items-center gap-1 font-semibold text-violet-700">
