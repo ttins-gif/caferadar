@@ -3,6 +3,8 @@ import { Cafe, LiveCheckIn } from "@/types/cafe";
 export const CHECKINS_STORAGE_KEY = "caferadar_checkins_v1";
 export const USER_CAFES_STORAGE_KEY = "caferadar_user_cafes_v1";
 export const FAVORITES_STORAGE_KEY = "caferadar_favorites_v1";
+export const CAFE_OVERRIDES_STORAGE_KEY = "caferadar_cafe_overrides_v1";
+export const DELETED_CAFES_STORAGE_KEY = "caferadar_deleted_cafes_v1";
 export const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
 export function loadUserCafes(): Cafe[] {
@@ -23,6 +25,71 @@ export function saveUserCafes(cafes: Cafe[]) {
   }
 }
 
+export function loadCafeOverrides(): Record<string, Cafe> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CAFE_OVERRIDES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveCafeOverride(cafe: Cafe) {
+  const overrides = loadCafeOverrides();
+  overrides[cafe.id] = cafe;
+  try {
+    localStorage.setItem(CAFE_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadDeletedCafeIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(DELETED_CAFES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function deleteCafeById(cafeId: string) {
+  const deleted = loadDeletedCafeIds();
+  if (!deleted.includes(cafeId)) {
+    deleted.push(cafeId);
+    try {
+      localStorage.setItem(DELETED_CAFES_STORAGE_KEY, JSON.stringify(deleted));
+    } catch {
+      // ignore
+    }
+  }
+  // Also remove from user cafes if it was user-created
+  const userCafes = loadUserCafes().filter((c) => c.id !== cafeId);
+  saveUserCafes(userCafes);
+}
+
+/**
+ * Gộp danh sách quán gốc + quán cộng đồng thêm + bản chỉnh sửa của Admin, loại bỏ quán đã xóa.
+ */
+export function loadMergedCafes(seedCafes: Cafe[]): Cafe[] {
+  const userCafes = loadUserCafes();
+  const overrides = loadCafeOverrides();
+  const deletedIds = new Set(loadDeletedCafeIds());
+
+  const combined = [...userCafes, ...seedCafes];
+  const seen = new Set<string>();
+  const result: Cafe[] = [];
+
+  for (const cafe of combined) {
+    if (seen.has(cafe.id) || deletedIds.has(cafe.id)) continue;
+    seen.add(cafe.id);
+    result.push(overrides[cafe.id] ?? cafe);
+  }
+  return result;
+}
+
 export function loadActiveCheckIns(): LiveCheckIn[] {
   if (typeof window === "undefined") return [];
   try {
@@ -35,8 +102,6 @@ export function loadActiveCheckIns(): LiveCheckIn[] {
   } catch {
     // ignore
   }
-
-  // Không tự chế check-in giả; trả về mảng rỗng khi chưa có dữ liệu thực tế
   return [];
 }
 
@@ -46,6 +111,12 @@ export function saveCheckIns(checkIns: LiveCheckIn[]) {
   } catch {
     // ignore
   }
+}
+
+export function deleteCheckInById(checkInId: string): LiveCheckIn[] {
+  const next = loadActiveCheckIns().filter((c) => c.id !== checkInId);
+  saveCheckIns(next);
+  return next;
 }
 
 export function loadFavorites(): string[] {
