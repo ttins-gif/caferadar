@@ -1,6 +1,6 @@
-# CafeRadar — Bản đồ Quán Cafe "Chạy Deadline" (TP.HCM)
+# CafeRadar — Bản đồ Quán Cafe "Chạy Deadline" (Việt Nam)
 
-Ứng dụng web **Work-from-Cafe Radar** giúp freelancer, sinh viên và dân văn phòng tìm quán cafe làm việc ở **Quận 1, Quận 3, Bình Thạnh, Phú Nhuận** chỉ trong 3 giây bằng dữ liệu có cấu trúc.
+Ứng dụng web **Work-from-Cafe Radar** giúp freelancer, sinh viên và dân văn phòng tìm quán cafe làm việc trên toàn Việt Nam chỉ trong 3 giây bằng dữ liệu có cấu trúc.
 
 ## Tính năng MVP đã có
 
