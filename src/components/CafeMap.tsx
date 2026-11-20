@@ -13,6 +13,25 @@ interface CafeMapProps {
 }
 
 const HCMC_CENTER: [number, number] = [10.788, 106.695];
+const VIETNAM_CENTER: [number, number] = [15.5, 109.5];
+// Giới hạn vùng bản đồ trong lãnh thổ & vùng biển Việt Nam (bao gồm Hoàng Sa & Trường Sa)
+const VIETNAM_BOUNDS: L.LatLngBoundsExpression = [
+  [6.0, 101.5],
+  [24.0, 118.5],
+];
+
+const SOVEREIGNTY_ISLANDS = [
+  {
+    name: "Quần đảo Hoàng Sa",
+    sub: "Đà Nẵng, Việt Nam",
+    coords: [16.5, 112.0] as [number, number],
+  },
+  {
+    name: "Quần đảo Trường Sa",
+    sub: "Khánh Hòa, Việt Nam",
+    coords: [10.0, 114.5] as [number, number],
+  },
+];
 
 export default function CafeMap({
   cafes,
@@ -33,6 +52,10 @@ export default function CafeMap({
     const map = L.map(mapContainerRef.current, {
       center: HCMC_CENTER,
       zoom: 13,
+      minZoom: 5,
+      maxZoom: 19,
+      maxBounds: VIETNAM_BOUNDS,
+      maxBoundsViscosity: 1.0,
       zoomControl: false,
     });
 
@@ -41,7 +64,58 @@ export default function CafeMap({
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
+      noWrap: true,
     }).addTo(map);
+
+    // Luôn hiển thị nhãn chủ quyền Quần đảo Hoàng Sa & Quần đảo Trường Sa (Việt Nam)
+    SOVEREIGNTY_ISLANDS.forEach((island) => {
+      const icon = L.divIcon({
+        className: "custom-cafe-marker",
+        html: `
+          <div style="
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            white-space: nowrap;
+          ">
+            <div style="
+              background: rgba(220, 38, 38, 0.92);
+              color: #fef08a;
+              font-weight: 800;
+              font-size: 11px;
+              padding: 3px 8px;
+              border-radius: 9999px;
+              border: 1.5px solid #ffffff;
+              box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+              letter-spacing: 0.01em;
+            ">
+              ★ ${island.name}
+            </div>
+            <div style="
+              margin-top: 2px;
+              background: rgba(255, 255, 255, 0.92);
+              color: #991b1b;
+              font-weight: 700;
+              font-size: 9px;
+              padding: 1px 6px;
+              border-radius: 9999px;
+              box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+            ">
+              ${island.sub}
+            </div>
+          </div>
+        `,
+        iconSize: [140, 38],
+        iconAnchor: [70, 19],
+      });
+
+      L.marker(island.coords, {
+        icon,
+        interactive: false,
+        zIndexOffset: 2000,
+      }).addTo(map);
+    });
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
@@ -190,17 +264,28 @@ export default function CafeMap({
     <div className="relative w-full h-full">
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Map legend */}
-      <div className="hidden sm:flex items-center gap-3 bg-white/95 backdrop-blur-xs border border-slate-200 px-3 py-1.5 rounded-full shadow-sm text-[11px] text-slate-600 absolute bottom-4 left-4 z-[400]">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-900" /> Quán chuẩn
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-600" /> Nổi bật ★
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-600" /> Có cảnh báo (6h)
-        </span>
+      {/* Map legend + Vietnam Overview button */}
+      <div className="hidden sm:flex items-center gap-2 absolute bottom-4 left-4 z-[400]">
+        <button
+          type="button"
+          onClick={() => {
+            mapRef.current?.flyTo(VIETNAM_CENTER, 6, { duration: 0.8 });
+          }}
+          className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-yellow-200 font-bold px-3 py-1.5 rounded-full shadow-sm text-[11px] transition cursor-pointer"
+        >
+          <span>★</span> Toàn cảnh Việt Nam
+        </button>
+        <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xs border border-slate-200 px-3 py-1.5 rounded-full shadow-sm text-[11px] text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-900" /> Quán chuẩn
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-600" /> Nổi bật ★
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-600" /> Có cảnh báo (6h)
+          </span>
+        </div>
       </div>
     </div>
   );
