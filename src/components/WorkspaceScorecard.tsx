@@ -21,6 +21,8 @@ import {
   Bookmark,
   Share2,
   ArrowUpRight,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Cafe,
@@ -39,6 +41,10 @@ interface WorkspaceScorecardProps {
   distanceKm?: number | null;
   isFavorite?: boolean;
   onToggleFavorite?: (cafeId: string) => void;
+  isAdmin?: boolean;
+  onEditCafe?: (cafe: Cafe) => void;
+  onDeleteCafe?: (cafeId: string) => void;
+  onDeleteCheckIn?: (checkInId: string) => void;
 }
 
 const NOISE_LABEL: Record<NoiseLevel, { text: string; cls: string }> = {
@@ -89,6 +95,10 @@ export default function WorkspaceScorecard({
   distanceKm,
   isFavorite = false,
   onToggleFavorite,
+  isAdmin = false,
+  onEditCafe,
+  onDeleteCafe,
+  onDeleteCheckIn,
 }: WorkspaceScorecardProps) {
   const [showCheckInPicker, setShowCheckInPicker] = useState(false);
   const [justCheckedIn, setJustCheckedIn] = useState<CheckInStatusType | null>(
@@ -190,6 +200,36 @@ export default function WorkspaceScorecard({
 
       {/* Scrollable Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Admin Action Bar */}
+        {isAdmin && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs">
+            <span className="font-bold text-amber-800">Quyền Admin</span>
+            <div className="flex items-center gap-1.5">
+              {onEditCafe && (
+                <button
+                  type="button"
+                  onClick={() => onEditCafe(cafe)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 font-semibold hover:bg-amber-100 cursor-pointer"
+                >
+                  <Pencil className="w-3 h-3" /> Sửa quán
+                </button>
+              )}
+              {onDeleteCafe && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`Xóa quán "${cafe.name}" khỏi CafeRadar?`)) {
+                      onDeleteCafe(cafe.id);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 text-white font-semibold hover:bg-rose-700 cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" /> Xóa quán
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         {/* Live Crowd-sourced Check-ins (Active 6h) */}
         <section className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5">
           <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -259,9 +299,21 @@ export default function WorkspaceScorecard({
                     <span className="font-medium">
                       {meta.emoji} {meta.label}
                     </span>
-                    <span className="text-[11px] opacity-75 shrink-0">
-                      {formatTimeRemaining(item.expiresAt)}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[11px] opacity-75">
+                        {formatTimeRemaining(item.expiresAt)}
+                      </span>
+                      {isAdmin && onDeleteCheckIn && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteCheckIn(item.id)}
+                          title="Admin: Xóa đánh giá/check-in này"
+                          className="p-0.5 rounded hover:bg-rose-200/80 text-rose-700 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
