@@ -63,7 +63,7 @@ export default function DirectoryPage() {
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-2">
-              <Trophy className="w-3.5 h-3.5" /> Bảng xếp hạng CafeRadar TP.HCM
+              <Trophy className="w-3.5 h-3.5" /> Bảng xếp hạng CafeRadar Việt Nam
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               Top quán cafe chạy deadline đáng ngồi nhất
@@ -78,7 +78,7 @@ export default function DirectoryPage() {
             onChange={(e) => setDistrict(e.target.value as District | "ALL")}
             className="px-3.5 py-2 text-sm font-semibold bg-white border border-slate-200 rounded-xl shadow-xs outline-none cursor-pointer"
           >
-            <option value="ALL">Tất cả 4 quận trọng điểm</option>
+            <option value="ALL">Tất cả khu vực</option>
             <option value="Quận 1">Quận 1</option>
             <option value="Quận 3">Quận 3</option>
             <option value="Bình Thạnh">Bình Thạnh</option>
