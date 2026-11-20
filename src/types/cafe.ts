@@ -50,6 +50,9 @@ export interface Cafe {
   /** Price & staff attitude */
   priceRange: string; // e.g. "45k–65k"
   staffNote: string;
+  /** Credible source verification (Google Maps, Threads, Facebook, etc.) */
+  sourceName?: string;
+  sourceUrl?: string;
   /** Highlight / Featured listing (monetization-ready) */
   featured?: boolean;
   voucher?: string;
