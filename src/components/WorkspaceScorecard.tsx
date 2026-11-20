@@ -23,13 +23,17 @@ import {
   ArrowUpRight,
   Pencil,
   Trash2,
+  Star,
+  MessageSquarePlus,
 } from "lucide-react";
 import {
   Cafe,
+  CafeReview,
   CHECKIN_META,
   CheckInStatusType,
   LiveCheckIn,
   NoiseLevel,
+  PowerOutletCoverage,
 } from "@/types/cafe";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
 
@@ -45,6 +49,9 @@ interface WorkspaceScorecardProps {
   onEditCafe?: (cafe: Cafe) => void;
   onDeleteCafe?: (cafeId: string) => void;
   onDeleteCheckIn?: (checkInId: string) => void;
+  reviews?: CafeReview[];
+  onAddReview?: (review: CafeReview) => void;
+  onDeleteReview?: (reviewId: string) => void;
 }
 
 const NOISE_LABEL: Record<NoiseLevel, { text: string; cls: string }> = {
@@ -99,12 +106,44 @@ export default function WorkspaceScorecard({
   onEditCafe,
   onDeleteCafe,
   onDeleteCheckIn,
+  reviews = [],
+  onAddReview,
+  onDeleteReview,
 }: WorkspaceScorecardProps) {
   const [showCheckInPicker, setShowCheckInPicker] = useState(false);
   const [justCheckedIn, setJustCheckedIn] = useState<CheckInStatusType | null>(
     null
   );
   const [copied, setCopied] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewAuthor, setReviewAuthor] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewWifi, setReviewWifi] = useState("");
+  const [reviewPower, setReviewPower] = useState<string>("");
+  const [reviewComment, setReviewComment] = useState("");
+
+  const handleSubmitReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onAddReview || !reviewComment.trim()) return;
+    onAddReview({
+      id: `rev-${Date.now()}`,
+      cafeId: cafe.id,
+      authorName: reviewAuthor.trim() || "Thành viên CafeRadar",
+      rating: reviewRating,
+      wifiDownload: reviewWifi.trim() ? Number(reviewWifi) : undefined,
+      powerOutlets: reviewPower
+        ? (reviewPower as PowerOutletCoverage)
+        : undefined,
+      comment: reviewComment.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    setReviewAuthor("");
+    setReviewRating(5);
+    setReviewWifi("");
+    setReviewPower("");
+    setReviewComment("");
+    setShowReviewForm(false);
+  };
 
   const handleShare = () => {
     const url = `${window.location.origin}/quan/${cafe.id}`;
@@ -483,6 +522,154 @@ export default function WorkspaceScorecard({
               </span>
             )}
           </div>
+        </section>
+
+        {/* 5. Đánh giá từ cộng đồng (User có quyền đánh giá trên mọi quán) */}
+        <section className="rounded-xl border border-slate-200 p-3.5 bg-white space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+              <span>
+                Đánh giá cộng đồng ({reviews.length})
+              </span>
+            </div>
+            {onAddReview && (
+              <button
+                type="button"
+                onClick={() => setShowReviewForm((v) => !v)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+              >
+                <MessageSquarePlus className="w-3.5 h-3.5" />
+                {showReviewForm ? "Đóng" : "Viết đánh giá"}
+              </button>
+            )}
+          </div>
+
+          {showReviewForm && onAddReview && (
+            <form
+              onSubmit={handleSubmitReview}
+              className="space-y-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs"
+            >
+              <div className="flex items-center gap-1">
+                <span className="text-slate-600 font-semibold mr-1">
+                  Đánh giá:
+                </span>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    className="p-0.5 cursor-pointer"
+                  >
+                    <Star
+                      className={`w-4 h-4 ${
+                        star <= reviewRating
+                          ? "text-amber-500 fill-amber-400"
+                          : "text-slate-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={reviewAuthor}
+                  onChange={(e) => setReviewAuthor(e.target.value)}
+                  placeholder="Tên của bạn (tùy chọn)"
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={reviewWifi}
+                  onChange={(e) => setReviewWifi(e.target.value)}
+                  placeholder="Wi-Fi đo được (Mbps)"
+                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none"
+                />
+              </div>
+
+              <select
+                value={reviewPower}
+                onChange={(e) => setReviewPower(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none"
+              >
+                <option value="">Tình trạng ổ cắm (tùy chọn)</option>
+                <option value="all">Ổ cắm đầy đủ (100% bàn)</option>
+                <option value="scattered">Rải rác (sát tường)</option>
+                <option value="rare">Hiếm ổ cắm</option>
+              </select>
+
+              <textarea
+                required
+                rows={2}
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="Chia sẻ trải nghiệm thực tế của bạn khi ngồi làm việc tại quán..."
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none resize-none"
+              />
+
+              <button
+                type="submit"
+                className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold cursor-pointer"
+              >
+                Gửi đánh giá thực tế
+              </button>
+            </form>
+          )}
+
+          {reviews.length === 0 ? (
+            <p className="text-xs text-slate-400 italic">
+              Chưa có đánh giá nào từ người dùng. Hãy bấm “Viết đánh giá” nếu bạn đã ngồi quán này!
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {reviews.map((rev) => (
+                <div
+                  key={rev.id}
+                  className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-800">
+                        {rev.authorName}
+                      </span>
+                      <span className="text-amber-500 font-bold">
+                        {"★".repeat(rev.rating)}
+                      </span>
+                    </div>
+                    {isAdmin && onDeleteReview && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteReview(rev.id)}
+                        title="Admin: Xóa đánh giá này"
+                        className="p-0.5 rounded hover:bg-rose-100 text-rose-600 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-slate-700 leading-relaxed">{rev.comment}</p>
+                  {(rev.wifiDownload || rev.powerOutlets) && (
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-0.5">
+                      {rev.wifiDownload && <span>📶 {rev.wifiDownload} Mbps</span>}
+                      {rev.powerOutlets && (
+                        <span>
+                          🔌{" "}
+                          {rev.powerOutlets === "all"
+                            ? "Ổ cắm 100%"
+                            : rev.powerOutlets === "scattered"
+                            ? "Sát tường"
+                            : "Hiếm"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
