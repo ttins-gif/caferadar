@@ -31,8 +31,10 @@ export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) 
   const [quietForCalls, setQuietForCalls] = useState(true);
   const [ergonomicDesk, setErgonomicDesk] = useState(true);
   const [stayFriendly, setStayFriendly] = useState(true);
-  const [priceRange, setPriceRange] = useState("45k–65k");
+  const [priceRange, setPriceRange] = useState("");
   const [staffNote, setStaffNote] = useState("");
+  const [sourceName, setSourceName] = useState("Google Maps");
+  const [sourceUrl, setSourceUrl] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,10 +81,11 @@ export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) 
       quietForCalls,
       ergonomicDesk,
       stayFriendly,
-      priceRange: priceRange.trim() || "45k–65k",
-      staffNote:
-        staffNote.trim() || "Quán do cộng đồng CafeRadar đóng góp.",
-      tags: ["Cộng đồng đóng góp"],
+      priceRange: priceRange.trim() || "Chưa có dữ liệu",
+      staffNote: staffNote.trim(),
+      sourceName,
+      sourceUrl: sourceUrl.trim() || undefined,
+      tags: [sourceName],
     };
 
     onAddCafe(newCafe);
@@ -290,15 +293,45 @@ export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) 
             </label>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Nguồn đánh giá uy tín *
+              </label>
+              <select
+                value={sourceName}
+                onChange={(e) => setSourceName(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white outline-none"
+              >
+                <option value="Google Maps">Google Maps</option>
+                <option value="Threads">Threads</option>
+                <option value="Facebook">Facebook</option>
+                <option value="Trải nghiệm thực tế">Trải nghiệm thực tế</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Link bài review / Google Maps (tùy chọn)
+              </label>
+              <input
+                type="url"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="https://maps.google.com/..."
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 outline-none"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Ghi chú ngắn về nhân viên / trải nghiệm
+              Ghi chú thực tế (có thể bỏ trống, không tự chế)
             </label>
             <textarea
               rows={2}
               value={staffNote}
               onChange={(e) => setStaffNote(e.target.value)}
-              placeholder="VD: Ngồi 5 tiếng vẫn châm trà đá miễn phí, gửi xe không tốn tiền..."
+              placeholder="Trích dẫn hoặc ghi chú thực tế từ nguồn..."
               className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-indigo-500 outline-none resize-none"
             />
           </div>
