@@ -2,17 +2,19 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, Pencil, Trash2, Radio, Lock } from "lucide-react";
+import { ShieldCheck, Pencil, Trash2, Radio, Lock, Star } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import EditCafeModal from "@/components/EditCafeModal";
 import { SEED_CAFES } from "@/data/seedCafes";
-import { Cafe, CHECKIN_META, LiveCheckIn } from "@/types/cafe";
+import { Cafe, CafeReview, CHECKIN_META, LiveCheckIn } from "@/types/cafe";
 import { getStoredRole, UserRole } from "@/lib/auth";
 import {
   deleteCafeById,
   deleteCheckInById,
+  deleteReviewById,
   loadActiveCheckIns,
   loadMergedCafes,
+  loadReviews,
   saveCafeOverride,
 } from "@/lib/storage";
 
@@ -20,11 +22,13 @@ export default function AdminDashboardPage() {
   const [role, setRole] = useState<UserRole>("user");
   const [cafes, setCafes] = useState<Cafe[]>([]);
   const [checkIns, setCheckIns] = useState<LiveCheckIn[]>([]);
+  const [reviews, setReviews] = useState<CafeReview[]>([]);
   const [editingCafe, setEditingCafe] = useState<Cafe | null>(null);
 
   const reloadData = () => {
     setCafes(loadMergedCafes(SEED_CAFES));
     setCheckIns(loadActiveCheckIns());
+    setReviews(loadReviews());
   };
 
   useEffect(() => {
@@ -177,6 +181,54 @@ export default function AdminDashboardPage() {
                         setCheckIns(deleteCheckInById(ci.id));
                       }}
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Xóa
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+        {/* Community Reviews Moderation */}
+        <section className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="px-5 py-3.5 border-b border-slate-200 flex items-center gap-2">
+            <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+            <h2 className="text-sm font-bold text-slate-900">
+              Kiểm duyệt Đánh giá cộng đồng ({reviews.length})
+            </h2>
+          </div>
+          {reviews.length === 0 ? (
+            <p className="p-5 text-xs text-slate-500">
+              Chưa có đánh giá nào từ người dùng.
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {reviews.map((rev) => {
+                const cafe = cafes.find((c) => c.id === rev.cafeId);
+                return (
+                  <div
+                    key={rev.id}
+                    className="px-5 py-3.5 flex items-start justify-between gap-3 text-xs"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-slate-900">
+                          {rev.authorName}
+                        </span>
+                        <span className="text-amber-500 font-bold">
+                          {"★".repeat(rev.rating)}
+                        </span>
+                        <span className="text-slate-500">
+                          tại <strong>{cafe?.name ?? rev.cafeId}</strong>
+                        </span>
+                      </div>
+                      <p className="text-slate-700">{rev.comment}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReviews(deleteReviewById(rev.id))}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold cursor-pointer shrink-0"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Xóa
                     </button>
