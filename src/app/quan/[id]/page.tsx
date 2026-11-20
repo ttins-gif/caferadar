@@ -35,6 +35,7 @@ import {
   saveFavorites,
   SIX_HOURS_MS,
 } from "@/lib/storage";
+import { getRealtimeOpenStatus } from "@/lib/realtime";
 
 const NOISE_LABEL: Record<NoiseLevel, { text: string; cls: string }> = {
   quiet: {
@@ -130,6 +131,7 @@ export default function CafeDetailPage() {
   }
 
   const isFav = favorites.includes(cafe.id);
+  const openStatus = getRealtimeOpenStatus(cafe);
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${cafe.name} ${cafe.address}`
   )}`;
@@ -159,8 +161,26 @@ export default function CafeDetailPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className="px-2.5 py-1 rounded-lg text-sm font-extrabold bg-indigo-600 text-white">
-                  {cafe.score.toFixed(1)} / 10
+                {cafe.score != null && (
+                  <span className="px-2.5 py-1 rounded-lg text-sm font-extrabold bg-indigo-600 text-white">
+                    {cafe.score.toFixed(1)} / 10
+                  </span>
+                )}
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                    openStatus.isOpen
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-slate-100 text-slate-600 border-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      openStatus.isOpen
+                        ? "bg-emerald-500 animate-pulse"
+                        : "bg-slate-400"
+                    }`}
+                  />
+                  {openStatus.label}
                 </span>
                 <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg">
                   {cafe.district}
@@ -228,12 +248,23 @@ export default function CafeDetailPage() {
             <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500 mb-2">
               <Wifi className="w-4 h-4 text-indigo-600" /> Tốc độ Wi-Fi thực tế
             </div>
-            <div className="text-2xl font-extrabold text-slate-900">
-              {cafe.wifiDownload} <span className="text-sm font-medium text-slate-500">Mbps ↓</span>
-            </div>
-            <div className="text-xs text-slate-500 mt-1">
-              Upload: <strong>{cafe.wifiUpload} Mbps</strong> • Đo {cafe.wifiMeasuredAt}
-            </div>
+            {cafe.wifiDownload != null ? (
+              <>
+                <div className="text-2xl font-extrabold text-slate-900">
+                  {cafe.wifiDownload}{" "}
+                  <span className="text-sm font-medium text-slate-500">
+                    Mbps ↓
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  Upload: <strong>{cafe.wifiUpload ?? "—"} Mbps</strong>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-slate-500 italic">
+                Chưa có số liệu đo thực tế
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
@@ -245,7 +276,9 @@ export default function CafeDetailPage() {
                 ? "Đầy đủ (100% bàn)"
                 : cafe.powerOutlets === "scattered"
                 ? "Rải rác (sát tường)"
-                : "Hiếm ổ cắm"}
+                : cafe.powerOutlets === "rare"
+                ? "Hiếm ổ cắm"
+                : "Chưa đo thực tế"}
             </div>
             <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> {cafe.openHours}
@@ -267,49 +300,52 @@ export default function CafeDetailPage() {
 
         {/* Noise + Staff Note */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-200 p-5">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500 mb-3">
-              <Volume2 className="w-4 h-4 text-indigo-600" /> Độ ồn theo khung giờ
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {(
-                [
-                  ["Sáng", cafe.noise.morning],
-                  ["Chiều", cafe.noise.afternoon],
-                  ["Tối", cafe.noise.evening],
-                ] as const
-              ).map(([slot, lvl]) => (
-                <div
-                  key={slot}
-                  className="rounded-xl border border-slate-200 p-3 text-center"
-                >
-                  <div className="text-xs text-slate-500 mb-1">{slot}</div>
-                  <span
-                    className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full border ${NOISE_LABEL[lvl].cls}`}
+          {cafe.noise && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500 mb-3">
+                <Volume2 className="w-4 h-4 text-indigo-600" /> Độ ồn theo khung giờ
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["Sáng", cafe.noise.morning],
+                    ["Chiều", cafe.noise.afternoon],
+                    ["Tối", cafe.noise.evening],
+                  ] as const
+                ).map(([slot, lvl]) => (
+                  <div
+                    key={slot}
+                    className="rounded-xl border border-slate-200 p-3 text-center"
                   >
-                    {NOISE_LABEL[lvl].text}
-                  </span>
-                </div>
-              ))}
+                    <div className="text-xs text-slate-500 mb-1">{slot}</div>
+                    <span
+                      className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full border ${NOISE_LABEL[lvl].cls}`}
+                    >
+                      {NOISE_LABEL[lvl].text}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="bg-white rounded-2xl border border-slate-200 p-5">
             <div className="text-xs font-bold uppercase text-slate-500 mb-2">
-              Ghi chú thực tế từ cộng đồng
+              Thông tin từ nguồn đối chiếu
             </div>
             <p className="text-sm text-slate-700 leading-relaxed">
-              “{cafe.staffNote}”
+              {cafe.staffNote ? `“${cafe.staffNote}”` : "Chưa có ghi chú chi tiết."}
             </p>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {cafe.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600"
-                >
-                  #{tag}
-                </span>
-              ))}
+            <div className="mt-3 text-xs text-slate-500">
+              Nguồn:{" "}
+              <a
+                href={cafe.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-indigo-600 hover:underline"
+              >
+                {cafe.sourceName} ↗
+              </a>
             </div>
           </div>
         </section>
