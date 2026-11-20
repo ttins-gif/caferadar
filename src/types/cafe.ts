@@ -1,4 +1,4 @@
-export type District = "Quận 1" | "Quận 3" | "Bình Thạnh" | "Phú Nhuận";
+export type District = string;
 
 export type NoiseLevel = "quiet" | "moderate" | "busy";
 
@@ -28,17 +28,20 @@ export interface Cafe {
   lat: number;
   lng: number;
   openHours: string;
+  /** Giờ mở / đóng định dạng HH:mm (giờ Việt Nam) để tính trạng thái real-time */
+  openTime?: string;
+  closeTime?: string;
   open24h: boolean;
-  /** Overall deadline readiness score (0 - 10) */
-  score: number;
-  /** Power outlet coverage */
-  powerOutlets: PowerOutletCoverage;
-  /** Actual measured Wi-Fi speeds in Mbps */
-  wifiDownload: number;
-  wifiUpload: number;
-  wifiMeasuredAt: string;
-  /** Noise level by time of day */
-  noise: {
+  /** Điểm đánh giá (null nếu chưa có dữ liệu đo/đánh giá thực tế) */
+  score: number | null;
+  /** Tỷ lệ ổ cắm (null nếu chưa xác thực) */
+  powerOutlets: PowerOutletCoverage | null;
+  /** Tốc độ Wi-Fi thực tế Mbps (null nếu chưa đo thực tế) */
+  wifiDownload: number | null;
+  wifiUpload: number | null;
+  wifiMeasuredAt?: string;
+  /** Độ ồn theo khung giờ (null nếu chưa có dữ liệu thực tế) */
+  noise?: {
     morning: NoiseLevel;
     afternoon: NoiseLevel;
     evening: NoiseLevel;
@@ -47,14 +50,14 @@ export interface Cafe {
   quietForCalls: boolean;
   ergonomicDesk: boolean;
   stayFriendly: boolean;
-  /** Price & staff attitude */
-  priceRange: string; // e.g. "45k–65k"
+  /** Giá nước tham khảo từ nguồn công khai */
+  priceRange: string;
   staffNote: string;
-  /** Credible source verification (Google Maps, Threads, Facebook, etc.) */
-  sourceName?: string;
-  sourceUrl?: string;
-  /** Highlight / Featured listing (monetization-ready) */
+  /** Nguồn đối chiếu công khai uy tín */
+  sourceName: string;
+  sourceUrl: string;
   featured?: boolean;
+  /** Ưu đãi hiện có (nếu có xác thực từ quán) */
   voucher?: string;
   tags: string[];
 }
