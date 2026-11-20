@@ -1,0 +1,211 @@
+"use client";
+
+import React, { useEffect, useRef } from "react";
+import L from "leaflet";
+import { Cafe, CHECKIN_META, LiveCheckIn } from "@/types/cafe";
+
+interface CafeMapProps {
+  cafes: Cafe[];
+  selectedCafeId: string | null;
+  onSelectCafe: (cafe: Cafe) => void;
+  checkInsByCafe: Record<string, LiveCheckIn[]>;
+  userLocation: { lat: number; lng: number } | null;
+}
+
+const HCMC_CENTER: [number, number] = [10.788, 106.695];
+
+export default function CafeMap({
+  cafes,
+  selectedCafeId,
+  onSelectCafe,
+  checkInsByCafe,
+  userLocation,
+}: CafeMapProps) {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const userMarkerRef = useRef<L.CircleMarker | null>(null);
+
+  // Initialize Leaflet map once
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: HCMC_CENTER,
+      zoom: 13,
+      zoomControl: false,
+    });
+
+    // Clean, modern CartoDB Voyager basemap (free, no API key needed)
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 19,
+      }
+    ).addTo(map);
+
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    const layerGroup = L.layerGroup().addTo(map);
+    mapRef.current = map;
+    markersLayerRef.current = layerGroup;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markersLayerRef.current = null;
+    };
+  }, []);
+
+  // Render cafe markers whenever cafes, selection, or live check-ins change
+  useEffect(() => {
+    const map = mapRef.current;
+    const layerGroup = markersLayerRef.current;
+    if (!map || !layerGroup) return;
+
+    layerGroup.clearLayers();
+
+    cafes.forEach((cafe) => {
+      const isSelected = cafe.id === selectedCafeId;
+      const activeCheckIns = checkInsByCafe[cafe.id] || [];
+      const latestAlert = activeCheckIns.find(
+        (c) => CHECKIN_META[c.type].severity === "alert"
+      );
+
+      const bgColor = isSelected
+        ? "#4f46e5" // indigo-600
+        : latestAlert
+        ? "#e11d48" // rose-600
+        : cafe.featured
+        ? "#d97706" // amber-600
+        : "#0f172a"; // slate-900
+
+      const scale = isSelected ? "scale(1.15)" : "scale(1)";
+      const ring = isSelected
+        ? "0 0 0 4px rgba(79, 70, 229, 0.28)"
+        : "0 4px 12px rgba(15, 23, 42, 0.25)";
+
+      const html = `
+        <div style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transform: ${scale};
+          transition: transform 150ms ease;
+          cursor: pointer;
+        ">
+          <div style="
+            background: ${bgColor};
+            color: white;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            border: 2px solid white;
+            box-shadow: ${ring};
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+          ">
+            ${cafe.featured ? "<span>★</span>" : ""}
+            <span>${cafe.score.toFixed(1)}</span>
+            ${cafe.open24h ? '<span style="font-size:10px;opacity:.9;">24h</span>' : ""}
+            ${
+              latestAlert
+                ? `<span title="${CHECKIN_META[latestAlert.type].label}" style="font-size:11px;">${CHECKIN_META[latestAlert.type].emoji}</span>`
+                : ""
+            }
+          </div>
+          <div style="
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid ${bgColor};
+            margin-top: -1px;
+          "></div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        className: "custom-cafe-marker",
+        html,
+        iconSize: [56, 34],
+        iconAnchor: [28, 34],
+      });
+
+      const marker = L.marker([cafe.lat, cafe.lng], {
+        icon,
+        zIndexOffset: isSelected ? 1000 : cafe.featured ? 500 : 0,
+      });
+
+      marker.on("click", () => {
+        onSelectCafe(cafe);
+      });
+
+      marker.addTo(layerGroup);
+    });
+  }, [cafes, selectedCafeId, checkInsByCafe, onSelectCafe]);
+
+  // Smooth flyTo when selectedCafeId changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedCafeId) return;
+    const selected = cafes.find((c) => c.id === selectedCafeId);
+    if (selected) {
+      map.flyTo([selected.lat, selected.lng], Math.max(map.getZoom(), 15), {
+        duration: 0.5,
+      });
+    }
+  }, [selectedCafeId, cafes]);
+
+  // Show user location pin
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+
+    if (userLocation) {
+      const marker = L.circleMarker([userLocation.lat, userLocation.lng], {
+        radius: 9,
+        fillColor: "#2563eb",
+        color: "#ffffff",
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 1,
+      })
+        .bindTooltip("Vị trí của bạn", { direction: "top" })
+        .addTo(map);
+
+      userMarkerRef.current = marker;
+      map.flyTo([userLocation.lat, userLocation.lng], 14, { duration: 0.7 });
+    }
+  }, [userLocation]);
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapContainerRef} className="w-full h-full" />
+
+      {/* Map legend */}
+      <div className="hidden sm:flex items-center gap-3 bg-white/95 backdrop-blur-xs border border-slate-200 px-3 py-1.5 rounded-full shadow-sm text-[11px] text-slate-600 absolute bottom-4 left-4 z-[400]">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-slate-900" /> Quán chuẩn
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-600" /> Nổi bật ★
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-600" /> Có cảnh báo (6h)
+        </span>
+      </div>
+    </div>
+  );
+}
