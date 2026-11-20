@@ -27,10 +27,9 @@ interface QuickFilterBarProps {
 
 const DISTRICTS: Array<District | "ALL"> = [
   "ALL",
-  "Quận 1",
-  "Quận 3",
-  "Bình Thạnh",
-  "Phú Nhuận",
+  "Hà Nội",
+  "Đà Nẵng",
+  "TP.HCM",
 ];
 
 export default function QuickFilterBar({
@@ -106,7 +105,7 @@ export default function QuickFilterBar({
           >
             {DISTRICTS.map((d) => (
               <option key={d} value={d}>
-                {d === "ALL" ? "Tất cả quận" : d}
+                {d === "ALL" ? "Tất cả tỉnh/thành" : d}
               </option>
             ))}
           </select>
