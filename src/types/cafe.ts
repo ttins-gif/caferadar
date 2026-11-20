@@ -20,6 +20,17 @@ export interface LiveCheckIn {
   expiresAt: string; // ISO string (createdAt + 6 hours)
 }
 
+export interface CafeReview {
+  id: string;
+  cafeId: string;
+  authorName: string;
+  rating: number; // 1 - 5
+  wifiDownload?: number;
+  powerOutlets?: PowerOutletCoverage;
+  comment: string;
+  createdAt: string;
+}
+
 export interface Cafe {
   id: string;
   name: string;
