@@ -36,31 +36,8 @@ export function loadActiveCheckIns(): LiveCheckIn[] {
     // ignore
   }
 
-  // Default realistic seed check-ins so first-time visitors see live status
-  const now = Date.now();
-  return [
-    {
-      id: "seed-ci-1",
-      cafeId: "q3-co-ba-workspace-vo-van-tan",
-      type: "quiet_available",
-      createdAt: new Date(now - 20 * 60000).toISOString(),
-      expiresAt: new Date(now - 20 * 60000 + SIX_HOURS_MS).toISOString(),
-    },
-    {
-      id: "seed-ci-2",
-      cafeId: "q1-three-oclock-nguyen-du",
-      type: "crowded",
-      createdAt: new Date(now - 35 * 60000).toISOString(),
-      expiresAt: new Date(now - 35 * 60000 + SIX_HOURS_MS).toISOString(),
-    },
-    {
-      id: "seed-ci-3",
-      cafeId: "bt-soko-workspace-nguyen-gia-tri",
-      type: "great_vibes",
-      createdAt: new Date(now - 50 * 60000).toISOString(),
-      expiresAt: new Date(now - 50 * 60000 + SIX_HOURS_MS).toISOString(),
-    },
-  ];
+  // Không tự chế check-in giả; trả về mảng rỗng khi chưa có dữ liệu thực tế
+  return [];
 }
 
 export function saveCheckIns(checkIns: LiveCheckIn[]) {
