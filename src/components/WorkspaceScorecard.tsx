@@ -335,9 +335,34 @@ export default function WorkspaceScorecard({
               {cafe.priceRange}
             </span>
           </div>
-          <p className="text-sm text-slate-700 leading-relaxed">
-            “{cafe.staffNote}”
-          </p>
+          {cafe.staffNote ? (
+            <p className="text-sm text-slate-700 leading-relaxed">
+              “{cafe.staffNote}”
+            </p>
+          ) : (
+            <p className="text-xs text-slate-400 italic">
+              Chưa có ghi chú đánh giá chi tiết.
+            </p>
+          )}
+          {cafe.sourceName && (
+            <div className="text-[11px] text-slate-500 flex items-center gap-1">
+              <span>Nguồn:</span>
+              {cafe.sourceUrl ? (
+                <a
+                  href={cafe.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-indigo-600 hover:underline"
+                >
+                  {cafe.sourceName} ↗
+                </a>
+              ) : (
+                <span className="font-semibold text-slate-700">
+                  {cafe.sourceName}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Structured badges */}
           <div className="flex flex-wrap gap-1.5 pt-1">
