@@ -38,7 +38,7 @@ const CafeMap = dynamic(() => import("./CafeMap"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 text-sm">
-      Đang tải bản đồ CafeRadar TP.HCM...
+      Đang tải bản đồ CafeRadar Việt Nam...
     </div>
   ),
 });
