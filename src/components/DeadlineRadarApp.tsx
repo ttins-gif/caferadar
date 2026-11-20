@@ -21,19 +21,25 @@ import {
   QuickFilters,
 } from "@/types/cafe";
 import {
+  deleteCafeById,
+  deleteCheckInById,
   loadActiveCheckIns,
   loadFavorites,
+  loadMergedCafes,
   loadUserCafes,
+  saveCafeOverride,
   saveCheckIns,
   saveFavorites,
   saveUserCafes,
   SIX_HOURS_MS,
 } from "@/lib/storage";
+import { getStoredRole, UserRole } from "@/lib/auth";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
 import Navbar from "./Navbar";
 import QuickFilterBar from "./QuickFilterBar";
 import WorkspaceScorecard from "./WorkspaceScorecard";
 import AddCafeModal from "./AddCafeModal";
+import EditCafeModal from "./EditCafeModal";
 
 const CafeMap = dynamic(() => import("./CafeMap"), {
   ssr: false,
@@ -62,7 +68,8 @@ function haversineKm(
 }
 
 export default function DeadlineRadarApp() {
-  const [userCafes, setUserCafes] = useState<Cafe[]>([]);
+  const [role, setRole] = useState<UserRole>("user");
+  const [allCafes, setAllCafes] = useState<Cafe[]>(SEED_CAFES);
   const [checkIns, setCheckIns] = useState<LiveCheckIn[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
@@ -71,6 +78,7 @@ export default function DeadlineRadarApp() {
   );
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCafe, setEditingCafe] = useState<Cafe | null>(null);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -89,9 +97,13 @@ export default function DeadlineRadarApp() {
   });
 
   useEffect(() => {
-    setUserCafes(loadUserCafes());
+    const syncRole = () => setRole(getStoredRole());
+    syncRole();
+    setAllCafes(loadMergedCafes(SEED_CAFES));
     setCheckIns(loadActiveCheckIns());
     setFavorites(loadFavorites());
+
+    window.addEventListener("caferadar-role-change", syncRole);
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -103,9 +115,8 @@ export default function DeadlineRadarApp() {
         setSelectedCafeId(focusId);
       }
     }
+    return () => window.removeEventListener("caferadar-role-change", syncRole);
   }, []);
-
-  const allCafes = useMemo(() => [...userCafes, ...SEED_CAFES], [userCafes]);
 
   const checkInsByCafe = useMemo(() => {
     const now = Date.now();
@@ -176,10 +187,25 @@ export default function DeadlineRadarApp() {
   };
 
   const handleAddCafe = (cafe: Cafe) => {
-    const next = [cafe, ...userCafes];
-    setUserCafes(next);
+    const nextUser = [cafe, ...loadUserCafes()];
+    saveUserCafes(nextUser);
+    setAllCafes(loadMergedCafes(SEED_CAFES));
     setSelectedCafeId(cafe.id);
-    saveUserCafes(next);
+  };
+
+  const handleSaveEditedCafe = (updated: Cafe) => {
+    saveCafeOverride(updated);
+    setAllCafes(loadMergedCafes(SEED_CAFES));
+  };
+
+  const handleDeleteCafe = (cafeId: string) => {
+    deleteCafeById(cafeId);
+    setAllCafes(loadMergedCafes(SEED_CAFES));
+    if (selectedCafeId === cafeId) setSelectedCafeId(null);
+  };
+
+  const handleDeleteCheckIn = (checkInId: string) => {
+    setCheckIns(deleteCheckInById(checkInId));
   };
 
   const handleToggleFavorite = (cafeId: string) => {
@@ -403,6 +429,10 @@ export default function DeadlineRadarApp() {
                 onAddCheckIn={handleAddCheckIn}
                 isFavorite={favorites.includes(selectedCafe.id)}
                 onToggleFavorite={handleToggleFavorite}
+                isAdmin={role === "admin"}
+                onEditCafe={(c) => setEditingCafe(c)}
+                onDeleteCafe={handleDeleteCafe}
+                onDeleteCheckIn={handleDeleteCheckIn}
                 distanceKm={
                   userLocation
                     ? haversineKm(
@@ -448,6 +478,14 @@ export default function DeadlineRadarApp() {
         <AddCafeModal
           onClose={() => setShowAddModal(false)}
           onAddCafe={handleAddCafe}
+        />
+      )}
+
+      {editingCafe && (
+        <EditCafeModal
+          cafe={editingCafe}
+          onClose={() => setEditingCafe(null)}
+          onSave={handleSaveEditedCafe}
         />
       )}
     </div>
