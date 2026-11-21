@@ -93,6 +93,43 @@ export async function recordUniqueCafeView(
   return mergedLocal.length;
 }
 
+export async function fetchAllCafeViewCounts(): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  try {
+    const raw = localStorage.getItem(VIEWS_LOCAL_KEY);
+    if (raw) {
+      const localMap: Record<string, string[]> = JSON.parse(raw);
+      for (const [cafeId, ids] of Object.entries(localMap)) {
+        if (Array.isArray(ids)) counts[cafeId] = ids.length;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data } = await sb
+        .from("public_cafes")
+        .select("id, data")
+        .like("id", "views:%");
+      if (data) {
+        for (const row of data) {
+          const cafeId = String(row.id).replace(/^views:/, "");
+          const cloudLen = Array.isArray(row.data?.viewerIds)
+            ? row.data.viewerIds.length
+            : 0;
+          counts[cafeId] = Math.max(counts[cafeId] ?? 0, cloudLen);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return counts;
+}
+
 export async function upsertCloudCafe(cafe: Cafe): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
