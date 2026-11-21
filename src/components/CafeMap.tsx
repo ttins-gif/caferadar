@@ -299,30 +299,6 @@ export default function CafeMap({
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainerRef} className="w-full h-full" />
-
-      {/* Map legend + Vietnam Overview button */}
-      <div className="hidden sm:flex items-center gap-2 absolute bottom-4 left-4 z-[400]">
-        <button
-          type="button"
-          onClick={() => {
-            mapRef.current?.flyTo(VIETNAM_CENTER, 6, { duration: 0.8 });
-          }}
-          className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-yellow-200 font-bold px-3 py-1.5 rounded-full shadow-sm text-[11px] transition cursor-pointer"
-        >
-          <span>★</span> Toàn cảnh Việt Nam
-        </button>
-        <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xs border border-slate-200 px-3 py-1.5 rounded-full shadow-sm text-[11px] text-slate-600">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-900" /> Quán chuẩn
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-600" /> Nổi bật ★
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-600" /> Có cảnh báo (6h)
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
