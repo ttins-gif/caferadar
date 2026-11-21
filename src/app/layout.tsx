@@ -1,8 +1,22 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#4f46e5",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://caferadar-vn.vercel.app"),
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "CafeRadar",
+    statusBarStyle: "default",
+  },
   title: "CafeRadar — Bản đồ Quán Cafe Chạy Deadline Việt Nam",
   description:
     "CafeRadar giúp freelancer & dân văn phòng tìm quán cafe làm việc trên toàn quốc trong 3 giây: lọc theo ổ cắm từng bàn, Wi-Fi > 50Mbps, mở 24/7, không gian yên tĩnh.",
