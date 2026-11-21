@@ -39,6 +39,18 @@ import {
 } from "@/lib/storage";
 import { getStoredRole, UserRole } from "@/lib/auth";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
+import {
+  deleteCloudCafe,
+  deleteCloudCheckIn,
+  deleteCloudReview,
+  fetchCloudCafes,
+  fetchCloudCheckIns,
+  fetchCloudReviews,
+  insertCloudCheckIn,
+  insertCloudReview,
+  isSupabaseConfigured,
+  upsertCloudCafe,
+} from "@/lib/supabase";
 import Navbar from "./Navbar";
 import QuickFilterBar from "./QuickFilterBar";
 import WorkspaceScorecard from "./WorkspaceScorecard";
@@ -108,6 +120,30 @@ export default function DeadlineRadarApp() {
     setCheckIns(loadActiveCheckIns());
     setReviews(loadReviews());
     setFavorites(loadFavorites());
+
+    // Đồng bộ dữ liệu công khai từ Supabase Database nếu đã cấu hình
+    if (isSupabaseConfigured) {
+      Promise.all([
+        fetchCloudCafes(),
+        fetchCloudReviews(),
+        fetchCloudCheckIns(),
+      ]).then(([cloudCafes, cloudReviews, cloudCheckIns]) => {
+        if (cloudCafes.length > 0) {
+          const localMerged = loadMergedCafes(SEED_CAFES);
+          const map = new Map<string, Cafe>();
+          for (const c of [...cloudCafes, ...localMerged]) {
+            if (!map.has(c.id)) map.set(c.id, c);
+          }
+          setAllCafes(Array.from(map.values()));
+        }
+        if (cloudReviews.length > 0) {
+          setReviews(cloudReviews);
+        }
+        if (cloudCheckIns.length > 0) {
+          setCheckIns(cloudCheckIns);
+        }
+      });
+    }
 
     window.addEventListener("caferadar-role-change", syncRole);
 
@@ -190,37 +226,47 @@ export default function DeadlineRadarApp() {
     const next = [newItem, ...checkIns];
     setCheckIns(next);
     saveCheckIns(next);
+    void insertCloudCheckIn(newItem);
   };
 
   const handleAddCafe = (cafe: Cafe, firstReview: CafeReview) => {
     const nextUser = [cafe, ...loadUserCafes()];
     saveUserCafes(nextUser);
-    setAllCafes(loadMergedCafes(SEED_CAFES));
+    setAllCafes((prev) => [cafe, ...prev.filter((c) => c.id !== cafe.id)]);
     setReviews(addReview(firstReview));
     setSelectedCafeId(cafe.id);
+    void upsertCloudCafe(cafe);
+    void insertCloudReview(firstReview);
   };
 
   const handleSaveEditedCafe = (updated: Cafe) => {
     saveCafeOverride(updated);
-    setAllCafes(loadMergedCafes(SEED_CAFES));
+    setAllCafes((prev) =>
+      prev.map((c) => (c.id === updated.id ? updated : c))
+    );
+    void upsertCloudCafe(updated);
   };
 
   const handleDeleteCafe = (cafeId: string) => {
     deleteCafeById(cafeId);
-    setAllCafes(loadMergedCafes(SEED_CAFES));
+    setAllCafes((prev) => prev.filter((c) => c.id !== cafeId));
     if (selectedCafeId === cafeId) setSelectedCafeId(null);
+    void deleteCloudCafe(cafeId);
   };
 
   const handleDeleteCheckIn = (checkInId: string) => {
     setCheckIns(deleteCheckInById(checkInId));
+    void deleteCloudCheckIn(checkInId);
   };
 
   const handleAddReview = (review: CafeReview) => {
     setReviews(addReview(review));
+    void insertCloudReview(review);
   };
 
   const handleDeleteReview = (reviewId: string) => {
     setReviews(deleteReviewById(reviewId));
+    void deleteCloudReview(reviewId);
   };
 
   const handleToggleFavorite = (cafeId: string) => {
