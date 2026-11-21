@@ -16,6 +16,7 @@ export type CheckInStatusType =
 export interface LiveCheckIn {
   id: string;
   cafeId: string;
+  authorId?: string;
   type: CheckInStatusType;
   note?: string;
   createdAt: string; // ISO string
@@ -32,6 +33,7 @@ export interface CafeReview {
   wifiDownload?: number;
   powerOutlets?: PowerOutletCoverage;
   spaceRating?: SpaceRating;
+  images?: string[];
   comment: string;
   createdAt: string;
 }
