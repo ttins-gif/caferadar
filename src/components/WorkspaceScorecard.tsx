@@ -161,12 +161,12 @@ export default function WorkspaceScorecard({
   const currentUser = getCurrentUser();
   const actorId = currentUser?.id || "guest";
 
-  // Kiểm tra giới hạn Live 6h: mỗi user chỉ 1 lần / quán trong 6h (tự reset khi hết hạn 6h)
-  const hasCheckedInThisCafe = activeCheckIns.some(
-    (ci) => (ci.authorId || "guest") === actorId
-  );
+  // Kiểm tra giới hạn Live 6h (Admin không bị giới hạn)
+  const hasCheckedInThisCafe =
+    !isAdmin &&
+    activeCheckIns.some((ci) => (ci.authorId || "guest") === actorId);
 
-  // Kiểm tra giới hạn đánh giá: tối đa 3 quán / ngày, mỗi quán 1 lần / ngày (reset qua ngày giờ VN)
+  // Kiểm tra giới hạn đánh giá: tối đa 3 quán / ngày, mỗi quán 1 lần / ngày (Admin không bị giới hạn)
   const todayVn = getVietnamDateKey(new Date());
   const sourceReviews = allReviews.length > 0 ? allReviews : reviews;
   const todaysUserReviews = sourceReviews.filter(
@@ -174,13 +174,12 @@ export default function WorkspaceScorecard({
       (r.authorId || "guest") === actorId &&
       getVietnamDateKey(r.createdAt) === todayVn
   );
-  const alreadyReviewedThisCafeToday = todaysUserReviews.some(
-    (r) => r.cafeId === cafe.id
-  );
+  const alreadyReviewedThisCafeToday =
+    !isAdmin && todaysUserReviews.some((r) => r.cafeId === cafe.id);
   const distinctCafesReviewedToday = new Set(
     todaysUserReviews.map((r) => r.cafeId)
   ).size;
-  const reachedDailyReviewLimit = distinctCafesReviewedToday >= 3;
+  const reachedDailyReviewLimit = !isAdmin && distinctCafesReviewedToday >= 3;
 
   const handleReviewImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -1045,20 +1044,24 @@ export default function WorkspaceScorecard({
                             rev.authorId,
                             rev.authorName
                           );
-                          return stats.isActiveContributor ? (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span
-                                title={`Người dùng năng nổ • ${stats.reason}`}
-                                className="active-contributor-frame inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold text-amber-950 leading-tight"
-                              >
+                          const isSelfAdminOverride = Boolean(
+                            currentUser?.activeContributorOverride &&
+                              (rev.authorId === currentUser.id ||
+                                rev.authorName === currentUser.displayName)
+                          );
+                          const showSparkle =
+                            stats.isActiveContributor || isSelfAdminOverride;
+                          return showSparkle ? (
+                            <span className="relative group inline-flex items-center">
+                              <span className="active-contributor-frame inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold text-amber-950 leading-tight cursor-default">
                                 <span className="text-amber-600 animate-pulse">✦</span>
                                 <span>{rev.authorName}</span>
                                 <span className="text-fuchsia-600 animate-pulse">✦</span>
                               </span>
-                              <span className="text-[10px] font-bold text-amber-700">
-                                Người dùng năng nổ
+                              <span className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 -top-7 whitespace-nowrap z-20 px-2 py-0.5 rounded-md bg-slate-900 text-amber-300 text-[10px] font-bold shadow-md">
+                                ✦ Người dùng năng nổ
                               </span>
-                            </div>
+                            </span>
                           ) : (
                             <div className="font-bold text-slate-800 leading-tight">
                               {rev.authorName}
