@@ -117,6 +117,9 @@ export default function WorkspaceScorecard({
   );
   const [copied, setCopied] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [selectedStarFilter, setSelectedStarFilter] = useState<number | null>(
+    null
+  );
   const [reviewAuthor, setReviewAuthor] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewWifi, setReviewWifi] = useState("");
@@ -167,6 +170,21 @@ export default function WorkspaceScorecard({
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${cafe.name} ${cafe.address}`
   )}`;
+
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : null;
+
+  const starCounts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  for (const r of reviews) {
+    if (starCounts[r.rating] !== undefined) starCounts[r.rating]++;
+  }
+
+  const filteredReviews =
+    selectedStarFilter == null
+      ? reviews
+      : reviews.filter((r) => r.rating === selectedStarFilter);
 
   const powerInfo = cafe.powerOutlets
     ? POWER_LABEL[cafe.powerOutlets]
@@ -624,32 +642,139 @@ export default function WorkspaceScorecard({
             </form>
           )}
 
-          {reviews.length === 0 ? (
+          {/* Google Maps style Rating Summary (Điểm trung bình + 5 thanh phân bố sao) */}
+          <div className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <div className="text-center shrink-0 min-w-[76px]">
+              <div className="text-3xl font-extrabold text-slate-900 leading-none">
+                {avgRating != null ? avgRating.toFixed(1) : "—"}
+              </div>
+              <div className="flex items-center justify-center gap-0.5 mt-1.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`w-3.5 h-3.5 ${
+                      avgRating != null && s <= Math.round(avgRating)
+                        ? "text-amber-500 fill-amber-400"
+                        : "text-slate-300"
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">
+                {reviews.length} đánh giá
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-1">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = starCounts[star];
+                const pct =
+                  reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                const active = selectedStarFilter === star;
+                return (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() =>
+                      setSelectedStarFilter(active ? null : star)
+                    }
+                    className={`w-full flex items-center gap-2 text-[11px] group cursor-pointer rounded px-1 py-0.5 transition ${
+                      active ? "bg-amber-50" : "hover:bg-slate-100"
+                    }`}
+                  >
+                    <span className="font-semibold text-slate-700 w-3 text-right">
+                      {star}
+                    </span>
+                    <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-400 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-slate-400 w-5 text-right">
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Nút lọc đánh giá theo sao giống Google Maps */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setSelectedStarFilter(null)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition shrink-0 cursor-pointer ${
+                selectedStarFilter === null
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              Tất cả ({reviews.length})
+            </button>
+            {[5, 4, 3, 2, 1].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() =>
+                  setSelectedStarFilter(
+                    selectedStarFilter === star ? null : star
+                  )
+                }
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition shrink-0 cursor-pointer ${
+                  selectedStarFilter === star
+                    ? "bg-amber-500 text-white border-amber-500"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-amber-300 hover:bg-amber-50/50"
+                }`}
+              >
+                <span>{star} ★</span>
+                <span className="opacity-75">({starCounts[star]})</span>
+              </button>
+            ))}
+          </div>
+
+          {filteredReviews.length === 0 ? (
             <p className="text-xs text-slate-400 italic">
-              Chưa có đánh giá nào từ người dùng. Hãy bấm “Viết đánh giá” nếu bạn đã ngồi quán này!
+              {reviews.length === 0
+                ? "Chưa có đánh giá nào từ người dùng. Hãy bấm “Viết đánh giá” nếu bạn đã ngồi quán này!"
+                : `Chưa có bài đánh giá ${selectedStarFilter} sao nào.`}
             </p>
           ) : (
-            <div className="space-y-2">
-              {reviews.map((rev) => (
+            <div className="space-y-2.5">
+              {filteredReviews.map((rev) => (
                 <div
                   key={rev.id}
-                  className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1"
+                  className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1.5"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-slate-800">
-                        {rev.authorName}
-                      </span>
-                      <span className="text-amber-500 font-bold">
-                        {"★".repeat(rev.rating)}
-                      </span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
+                        {rev.authorName[0]?.toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-800 leading-tight">
+                          {rev.authorName}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-amber-500 text-[11px] leading-none">
+                            {"★".repeat(rev.rating)}
+                            <span className="text-slate-300">
+                              {"★".repeat(5 - rev.rating)}
+                            </span>
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(rev.createdAt).toLocaleDateString("vi-VN")}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     {isAdmin && onDeleteReview && (
                       <button
                         type="button"
                         onClick={() => onDeleteReview(rev.id)}
                         title="Admin: Xóa đánh giá này"
-                        className="p-0.5 rounded hover:bg-rose-100 text-rose-600 cursor-pointer"
+                        className="p-1 rounded hover:bg-rose-100 text-rose-600 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
