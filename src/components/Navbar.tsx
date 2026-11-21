@@ -18,6 +18,7 @@ import {
   getCurrentUser,
   getStoredRole,
   logoutUser,
+  syncCurrentUserFromCloud,
   UserAccount,
   UserRole,
 } from "@/lib/auth";
@@ -46,6 +47,8 @@ export default function Navbar({ onOpenAddModal }: NavbarProps) {
       setUser(getCurrentUser());
     };
     sync();
+    // Đồng bộ hồ sơ từ Supabase khi mở trang trên thiết bị khác
+    void syncCurrentUserFromCloud();
     window.addEventListener("caferadar-role-change", sync);
     window.addEventListener("caferadar-auth-change", sync);
     window.addEventListener("storage", sync);
