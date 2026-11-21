@@ -36,6 +36,7 @@ import {
   PowerOutletCoverage,
 } from "@/types/cafe";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
+import { getCurrentUser } from "@/lib/auth";
 
 interface WorkspaceScorecardProps {
   cafe: Cafe;
@@ -125,10 +126,14 @@ export default function WorkspaceScorecard({
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!onAddReview || !reviewComment.trim()) return;
+    const currentUser = getCurrentUser();
     onAddReview({
       id: `rev-${Date.now()}`,
       cafeId: cafe.id,
-      authorName: reviewAuthor.trim() || "Thành viên CafeRadar",
+      authorName:
+        reviewAuthor.trim() ||
+        currentUser?.displayName ||
+        "Thành viên CafeRadar",
       rating: reviewRating,
       wifiDownload: reviewWifi.trim() ? Number(reviewWifi) : undefined,
       powerOutlets: reviewPower
