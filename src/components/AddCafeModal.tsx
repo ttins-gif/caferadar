@@ -183,7 +183,9 @@ export default function AddCafeModal({ onClose, onAddCafe }: AddCafeModalProps) 
     const firstReview: CafeReview = {
       id: `rev-${Date.now()}`,
       cafeId,
+      authorId: currentUser?.id,
       authorName: currentUser?.displayName || "Thành viên CafeRadar",
+      authorAvatar: currentUser?.avatarUrl,
       rating,
       wifiDownload: wifiNum ?? undefined,
       powerOutlets: powerVal ?? undefined,
