@@ -21,10 +21,76 @@ export async function fetchCloudCafes(): Promise<Cafe[]> {
   if (!sb) return [];
   const { data, error } = await sb
     .from("public_cafes")
-    .select("data")
+    .select("id, data")
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  return data.map((row) => row.data as Cafe);
+  return data
+    .filter((row) => !String(row.id).startsWith("views:"))
+    .map((row) => row.data as Cafe);
+}
+
+const VIEWS_LOCAL_KEY = "caferadar_cafe_views_v1";
+
+/**
+ * Ghi nhận 1 lượt mắt xem duy nhất cho mỗi account (mỗi account chỉ tính 1 lần / quán).
+ * Đồng bộ cả localStorage lẫn Supabase (lưu dưới key `views:<cafeId>`).
+ */
+export async function recordUniqueCafeView(
+  cafeId: string,
+  viewerId: string
+): Promise<number> {
+  let localMap: Record<string, string[]> = {};
+  try {
+    const raw = localStorage.getItem(VIEWS_LOCAL_KEY);
+    if (raw) localMap = JSON.parse(raw);
+  } catch {
+    localMap = {};
+  }
+
+  const localSet = new Set<string>(localMap[cafeId] || []);
+  localSet.add(viewerId);
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const rowId = `views:${cafeId}`;
+      const { data } = await sb
+        .from("public_cafes")
+        .select("data")
+        .eq("id", rowId)
+        .maybeSingle();
+
+      const cloudIds: string[] = Array.isArray(data?.data?.viewerIds)
+        ? data.data.viewerIds
+        : [];
+      for (const id of cloudIds) localSet.add(id);
+
+      const merged = Array.from(localSet);
+      if (!cloudIds.includes(viewerId)) {
+        await sb
+          .from("public_cafes")
+          .upsert({ id: rowId, data: { viewerIds: merged } });
+      }
+      localMap[cafeId] = merged;
+      try {
+        localStorage.setItem(VIEWS_LOCAL_KEY, JSON.stringify(localMap));
+      } catch {
+        // ignore
+      }
+      return merged.length;
+    } catch {
+      // fall through to local count
+    }
+  }
+
+  const mergedLocal = Array.from(localSet);
+  localMap[cafeId] = mergedLocal;
+  try {
+    localStorage.setItem(VIEWS_LOCAL_KEY, JSON.stringify(localMap));
+  } catch {
+    // ignore
+  }
+  return mergedLocal.length;
 }
 
 export async function upsertCloudCafe(cafe: Cafe): Promise<void> {
