@@ -58,6 +58,7 @@ import QuickFilterBar from "./QuickFilterBar";
 import WorkspaceScorecard from "./WorkspaceScorecard";
 import AddCafeModal from "./AddCafeModal";
 import EditCafeModal from "./EditCafeModal";
+import AuthModal from "./AuthModal";
 
 const CafeMap = dynamic(() => import("./CafeMap"), {
   ssr: false,
@@ -96,6 +97,7 @@ export default function DeadlineRadarApp() {
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [editingCafe, setEditingCafe] = useState<Cafe | null>(null);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -280,7 +282,16 @@ export default function DeadlineRadarApp() {
     setSelectedCafeId(cafe.id);
   }, []);
 
+  const requireLogin = (): boolean => {
+    if (!getCurrentUser()) {
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleAddCheckIn = (cafeId: string, type: CheckInStatusType) => {
+    if (!requireLogin()) return;
     const now = Date.now();
     const actorId = getCurrentUser()?.id || "guest";
     const newItem: LiveCheckIn = {
@@ -328,6 +339,7 @@ export default function DeadlineRadarApp() {
   };
 
   const handleAddReview = (review: CafeReview) => {
+    if (!requireLogin()) return;
     setReviews(addReview(review));
     void insertCloudReview(review);
   };
@@ -338,6 +350,7 @@ export default function DeadlineRadarApp() {
   };
 
   const handleToggleFavorite = (cafeId: string) => {
+    if (!requireLogin()) return;
     const next = favorites.includes(cafeId)
       ? favorites.filter((id) => id !== cafeId)
       : [...favorites, cafeId];
@@ -389,8 +402,12 @@ export default function DeadlineRadarApp() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-slate-50">
-      <Navbar onOpenAddModal={() => setShowAddModal(true)} />
+    <div className="h-[100dvh] w-screen flex flex-col overflow-hidden bg-slate-50">
+      <Navbar
+        onOpenAddModal={() => {
+          if (requireLogin()) setShowAddModal(true);
+        }}
+      />
 
       <QuickFilterBar
         filters={filters}
@@ -656,6 +673,10 @@ export default function DeadlineRadarApp() {
           onClose={() => setEditingCafe(null)}
           onSave={handleSaveEditedCafe}
         />
+      )}
+
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
       )}
     </div>
   );
