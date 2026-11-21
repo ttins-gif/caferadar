@@ -133,7 +133,9 @@ export default function WorkspaceScorecard({
     onAddReview({
       id: `rev-${Date.now()}`,
       cafeId: cafe.id,
+      authorId: currentUser?.id,
       authorName: currentUser?.displayName || "Thành viên ẩn danh",
+      authorAvatar: currentUser?.avatarUrl,
       rating: reviewRating,
       wifiDownload: reviewWifi.trim() ? Number(reviewWifi) : undefined,
       powerOutlets: reviewPower
@@ -790,8 +792,24 @@ export default function WorkspaceScorecard({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0">
-                        {rev.authorName[0]?.toUpperCase() || "U"}
+                      <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center overflow-hidden shrink-0">
+                        {(() => {
+                          const avatarSrc =
+                            (currentUser &&
+                              (rev.authorId === currentUser.id ||
+                                rev.authorName === currentUser.displayName) &&
+                              currentUser.avatarUrl) ||
+                            rev.authorAvatar;
+                          return avatarSrc ? (
+                            <img
+                              src={avatarSrc}
+                              alt={rev.authorName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            rev.authorName[0]?.toUpperCase() || "U"
+                          );
+                        })()}
                       </div>
                       <div>
                         <div className="font-bold text-slate-800 leading-tight">
