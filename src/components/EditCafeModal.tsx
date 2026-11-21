@@ -33,6 +33,25 @@ export default function EditCafeModal({
   const [staffNote, setStaffNote] = useState(cafe.staffNote);
   const [sourceName, setSourceName] = useState(cafe.sourceName);
   const [sourceUrl, setSourceUrl] = useState(cafe.sourceUrl);
+  const [photos, setPhotos] = useState<string[]>(cafe.photos ?? []);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    const remaining = 2 - photos.length;
+    for (const file of files.slice(0, remaining)) {
+      if (file.size > 1024 * 1024) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setPhotos((prev) =>
+            prev.length < 2 ? [...prev, reader.result as string] : prev
+          );
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +72,7 @@ export default function EditCafeModal({
       staffNote: staffNote.trim(),
       sourceName: sourceName.trim() || cafe.sourceName,
       sourceUrl: sourceUrl.trim() || cafe.sourceUrl,
+      photos: photos.length > 0 ? photos : undefined,
     };
     onSave(updated);
     onClose();
@@ -224,6 +244,47 @@ export default function EditCafeModal({
                 onChange={(e) => setSourceUrl(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none"
               />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-700">
+              Hình ảnh không gian quán (tối đa 2 ảnh)
+            </label>
+            <div className="flex items-center gap-2 flex-wrap">
+              {photos.map((src, i) => (
+                <div
+                  key={i}
+                  className="relative w-20 h-16 rounded-lg overflow-hidden border border-slate-200"
+                >
+                  <img
+                    src={src}
+                    alt={`Ảnh quán ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPhotos((prev) => prev.filter((_, idx) => idx !== i))
+                    }
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-slate-900/75 text-white text-[10px] flex items-center justify-center cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {photos.length < 2 && (
+                <label className="px-3 py-2 rounded-lg border border-dashed border-slate-300 hover:bg-slate-50 text-xs font-semibold text-slate-600 cursor-pointer">
+                  + Tải ảnh ({photos.length}/2)
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
           </div>
 
