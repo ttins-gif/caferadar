@@ -52,7 +52,7 @@ export default function AdminDashboardPage() {
               Khu vực chỉ dành cho Admin
             </h1>
             <p className="text-sm text-slate-500 mt-1.5">
-              Vui lòng bấm nút <strong>User</strong> ở góc phải thanh điều hướng và nhập mã khóa Admin để truy cập bảng quản trị.
+              Vui lòng đăng nhập bằng tài khoản <strong>Admin</strong> được cấp quyền để truy cập bảng quản trị.
             </p>
             <Link
               href="/"
