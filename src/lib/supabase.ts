@@ -25,7 +25,11 @@ export async function fetchCloudCafes(): Promise<Cafe[]> {
     .order("created_at", { ascending: false });
   if (error || !data) return [];
   return data
-    .filter((row) => !String(row.id).startsWith("views:"))
+    .filter(
+      (row) =>
+        !String(row.id).startsWith("views:") &&
+        !String(row.id).startsWith("feedback:")
+    )
     .map((row) => row.data as Cafe);
 }
 
@@ -194,4 +198,77 @@ export async function deleteCloudCheckIn(ciId: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   await sb.from("public_checkins").delete().eq("id", ciId);
+}
+
+export interface SiteFeedback {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  category: string;
+  content: string;
+  createdAt: string;
+}
+
+const FEEDBACK_LOCAL_KEY = "caferadar_feedback_v1";
+
+export async function fetchAllFeedback(): Promise<SiteFeedback[]> {
+  let localList: SiteFeedback[] = [];
+  try {
+    const raw = localStorage.getItem(FEEDBACK_LOCAL_KEY);
+    if (raw) localList = JSON.parse(raw);
+  } catch {
+    localList = [];
+  }
+
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data } = await sb
+        .from("public_cafes")
+        .select("id, data")
+        .like("id", "feedback:%")
+        .order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        return data.map((row) => row.data as SiteFeedback);
+      }
+    } catch {
+      // fallback to local
+    }
+  }
+  return localList;
+}
+
+export async function submitSiteFeedback(item: SiteFeedback): Promise<void> {
+  try {
+    const raw = localStorage.getItem(FEEDBACK_LOCAL_KEY);
+    const prev: SiteFeedback[] = raw ? JSON.parse(raw) : [];
+    localStorage.setItem(FEEDBACK_LOCAL_KEY, JSON.stringify([item, ...prev]));
+  } catch {
+    // ignore
+  }
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("public_cafes").upsert({
+      id: `feedback:${item.id}`,
+      data: item,
+    });
+  }
+}
+
+export async function deleteSiteFeedback(id: string): Promise<void> {
+  try {
+    const raw = localStorage.getItem(FEEDBACK_LOCAL_KEY);
+    const prev: SiteFeedback[] = raw ? JSON.parse(raw) : [];
+    localStorage.setItem(
+      FEEDBACK_LOCAL_KEY,
+      JSON.stringify(prev.filter((f) => f.id !== id))
+    );
+  } catch {
+    // ignore
+  }
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("public_cafes").delete().eq("id", `feedback:${id}`);
+  }
 }
