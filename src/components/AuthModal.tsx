@@ -1,25 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Lock, Upload, ShieldCheck, UserPlus, LogIn } from "lucide-react";
-import {
-  loginAsAdmin,
-  loginLocalAccount,
-  registerLocalAccount,
-} from "@/lib/auth";
+import { X, Upload, UserPlus, LogIn } from "lucide-react";
+import { loginLocalAccount, registerLocalAccount } from "@/lib/auth";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 interface AuthModalProps {
   onClose: () => void;
-  initialTab?: "login" | "register" | "admin";
+  initialTab?: "login" | "register";
 }
 
 export default function AuthModal({
   onClose,
   initialTab = "login",
 }: AuthModalProps) {
-  const [tab, setTab] = useState<"login" | "register" | "admin">(initialTab);
+  const [tab, setTab] = useState<"login" | "register">(initialTab);
   const [error, setError] = useState("");
 
   // Login state
@@ -33,9 +29,6 @@ export default function AuthModal({
   const [wantLinkGmail, setWantLinkGmail] = useState(true);
   const [regGmail, setRegGmail] = useState("");
   const [regAvatar, setRegAvatar] = useState<string>("");
-
-  // Admin state
-  const [adminPasscode, setAdminPasscode] = useState("");
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,15 +91,6 @@ export default function AuthModal({
     }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loginAsAdmin(adminPasscode)) {
-      onClose();
-    } else {
-      setError("Mã khóa Admin không đúng.");
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-[1100] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden">
@@ -125,7 +109,7 @@ export default function AuthModal({
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-3 border-b border-slate-200 bg-slate-50 text-xs font-bold">
+        <div className="grid grid-cols-2 border-b border-slate-200 bg-slate-50 text-xs font-bold">
           <button
             type="button"
             onClick={() => {
@@ -153,20 +137,6 @@ export default function AuthModal({
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" /> Đăng ký
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTab("admin");
-              setError("");
-            }}
-            className={`py-2.5 inline-flex items-center justify-center gap-1.5 border-b-2 transition cursor-pointer ${
-              tab === "admin"
-                ? "border-amber-600 text-amber-700 bg-white"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" /> Admin
           </button>
         </div>
 
@@ -356,32 +326,6 @@ export default function AuthModal({
                 className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition cursor-pointer"
               >
                 Tạo tài khoản
-              </button>
-            </form>
-          )}
-
-          {/* ADMIN TAB */}
-          {tab === "admin" && (
-            <form onSubmit={handleAdminLogin} className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 p-3 rounded-xl">
-                <Lock className="w-4 h-4 shrink-0" />
-                <span>
-                  Nhập mã khóa Admin để mở toàn quyền chỉnh sửa quán và xóa đánh giá.
-                </span>
-              </div>
-              <input
-                type="password"
-                required
-                value={adminPasscode}
-                onChange={(e) => setAdminPasscode(e.target.value)}
-                placeholder="Nhập mã khóa Admin..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-amber-500 outline-none"
-              />
-              <button
-                type="submit"
-                className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold transition cursor-pointer"
-              >
-                Xác nhận quyền Admin
               </button>
             </form>
           )}
