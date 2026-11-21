@@ -25,6 +25,7 @@ import {
   Trash2,
   Star,
   MessageSquarePlus,
+  Sparkles as SpaceIcon,
 } from "lucide-react";
 import {
   Cafe,
@@ -34,6 +35,7 @@ import {
   LiveCheckIn,
   NoiseLevel,
   PowerOutletCoverage,
+  SpaceRating,
 } from "@/types/cafe";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
 import { getCurrentUser } from "@/lib/auth";
@@ -85,6 +87,21 @@ const POWER_LABEL = {
   },
 };
 
+const SPACE_LABEL: Record<SpaceRating, { text: string; cls: string }> = {
+  spacious_quiet: {
+    text: "Rộng rãi, yên tĩnh",
+    cls: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  },
+  cozy_moderate: {
+    text: "Ấm cúng, vừa phải",
+    cls: "text-amber-700 bg-amber-50 border-amber-200",
+  },
+  small_noisy: {
+    text: "Nhỏ / Hơi ồn",
+    cls: "text-rose-700 bg-rose-50 border-rose-200",
+  },
+};
+
 function formatTimeRemaining(expiresAt: string): string {
   const diffMs = new Date(expiresAt).getTime() - Date.now();
   if (diffMs <= 0) return "Đã hết hạn";
@@ -123,6 +140,7 @@ export default function WorkspaceScorecard({
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewWifi, setReviewWifi] = useState("");
   const [reviewPower, setReviewPower] = useState<string>("");
+  const [reviewSpace, setReviewSpace] = useState<string>("");
   const [reviewComment, setReviewComment] = useState("");
 
   const currentUser = getCurrentUser();
@@ -141,12 +159,14 @@ export default function WorkspaceScorecard({
       powerOutlets: reviewPower
         ? (reviewPower as PowerOutletCoverage)
         : undefined,
+      spaceRating: reviewSpace ? (reviewSpace as SpaceRating) : undefined,
       comment: reviewComment.trim(),
       createdAt: new Date().toISOString(),
     });
     setReviewRating(5);
     setReviewWifi("");
     setReviewPower("");
+    setReviewSpace("");
     setReviewComment("");
     setShowReviewForm(false);
   };
@@ -221,6 +241,28 @@ export default function WorkspaceScorecard({
     ? POWER_LABEL[effectivePower]
     : {
         text: "Chưa đo thực tế",
+        cls: "text-slate-600 bg-slate-100 border-slate-200",
+      };
+
+  const spaceVotes = reviews
+    .map((r) => r.spaceRating)
+    .filter((v): v is SpaceRating => Boolean(v));
+  let effectiveSpace: SpaceRating | null = null;
+  if (spaceVotes.length > 0) {
+    const counts: Record<SpaceRating, number> = {
+      spacious_quiet: 0,
+      cozy_moderate: 0,
+      small_noisy: 0,
+    };
+    for (const s of spaceVotes) counts[s]++;
+    effectiveSpace = (Object.keys(counts) as SpaceRating[]).sort(
+      (a, b) => counts[b] - counts[a]
+    )[0];
+  }
+  const spaceInfo = effectiveSpace
+    ? SPACE_LABEL[effectiveSpace]
+    : {
+        text: "Chưa đánh giá thực tế",
         cls: "text-slate-600 bg-slate-100 border-slate-200",
       };
   const openStatus = getRealtimeOpenStatus(cafe);
@@ -512,6 +554,27 @@ export default function WorkspaceScorecard({
               )}
             </div>
           </div>
+
+          <div className="rounded-xl border border-slate-200 p-3 bg-white sm:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                <SpaceIcon className="w-4 h-4 text-indigo-500" />
+                <span>Không gian quán</span>
+              </div>
+              {spaceVotes.length > 0 && (
+                <span className="text-[11px] text-slate-400">
+                  Từ {spaceVotes.length} đánh giá thực tế
+                </span>
+              )}
+            </div>
+            <div className="mt-1.5">
+              <span
+                className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-lg border ${spaceInfo.cls}`}
+              >
+                {spaceInfo.text}
+              </span>
+            </div>
+          </div>
         </section>
 
         {/* 4. Thái độ nhân viên & Giá nước */}
@@ -665,6 +728,17 @@ export default function WorkspaceScorecard({
                 <option value="all">Ổ cắm đầy đủ (100% bàn)</option>
                 <option value="scattered">Rải rác (sát tường)</option>
                 <option value="rare">Hiếm ổ cắm</option>
+              </select>
+
+              <select
+                value={reviewSpace}
+                onChange={(e) => setReviewSpace(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none"
+              >
+                <option value="">Không gian quán (tùy chọn)</option>
+                <option value="spacious_quiet">Rộng rãi, yên tĩnh (rất dễ tập trung)</option>
+                <option value="cozy_moderate">Ấm cúng, vừa phải (ngồi làm việc ổn)</option>
+                <option value="small_noisy">Nhỏ / Hơi ồn (hợp trò chuyện hơn)</option>
               </select>
 
               <textarea
@@ -840,8 +914,8 @@ export default function WorkspaceScorecard({
                     )}
                   </div>
                   <p className="text-slate-700 leading-relaxed">{rev.comment}</p>
-                  {(rev.wifiDownload || rev.powerOutlets) && (
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-0.5">
+                  {(rev.wifiDownload || rev.powerOutlets || rev.spaceRating) && (
+                    <div className="flex items-center flex-wrap gap-2 text-[11px] text-slate-500 pt-0.5">
                       {rev.wifiDownload && <span>📶 {rev.wifiDownload} Mbps</span>}
                       {rev.powerOutlets && (
                         <span>
@@ -852,6 +926,9 @@ export default function WorkspaceScorecard({
                             ? "Sát tường"
                             : "Hiếm"}
                         </span>
+                      )}
+                      {rev.spaceRating && (
+                        <span>🏠 {SPACE_LABEL[rev.spaceRating].text}</span>
                       )}
                     </div>
                   )}
