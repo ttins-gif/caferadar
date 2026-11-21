@@ -171,18 +171,66 @@ export default function DeadlineRadarApp() {
 
   const filteredCafes = useMemo(() => {
     const q = filters.search.trim().toLowerCase();
+
+    // Tổng hợp dữ liệu Wi-Fi, Ổ cắm, Không gian từ đánh giá thực tế của user cho từng quán
+    const reviewsByCafe = new Map<string, CafeReview[]>();
+    for (const r of reviews) {
+      const arr = reviewsByCafe.get(r.cafeId) ?? [];
+      arr.push(r);
+      reviewsByCafe.set(r.cafeId, arr);
+    }
+
     const list = allCafes.filter((c) => {
       if (onlyFavorites && !favorites.includes(c.id)) return false;
       if (filters.district !== "ALL" && c.district !== filters.district) {
         return false;
       }
-      if (filters.powerEveryTable && c.powerOutlets !== "all") return false;
-      if (filters.fastWifi && (c.wifiDownload == null || c.wifiDownload < 50))
+
+      const cafeRevs = reviewsByCafe.get(c.id) ?? [];
+
+      // Wi-Fi trung bình từ đánh giá user (fallback sang dữ liệu Admin nếu chưa có user đo)
+      const wifiVals = cafeRevs
+        .map((r) => r.wifiDownload)
+        .filter((v): v is number => typeof v === "number" && v > 0);
+      const effectiveWifi =
+        wifiVals.length > 0
+          ? wifiVals.reduce((a, b) => a + b, 0) / wifiVals.length
+          : c.wifiDownload;
+
+      // Ổ cắm theo số đông đánh giá user
+      const powerVotes = cafeRevs
+        .map((r) => r.powerOutlets)
+        .filter(Boolean) as Array<"all" | "scattered" | "rare">;
+      let effectivePower = c.powerOutlets;
+      if (powerVotes.length > 0) {
+        const counts = { all: 0, scattered: 0, rare: 0 };
+        for (const p of powerVotes) counts[p]++;
+        effectivePower = (["all", "scattered", "rare"] as const).sort(
+          (a, b) => counts[b] - counts[a]
+        )[0];
+      }
+
+      // Không gian theo số đông đánh giá user
+      const spaceVotes = cafeRevs
+        .map((r) => r.spaceRating)
+        .filter(Boolean) as Array<"spacious_quiet" | "cozy_moderate" | "small_noisy">;
+      let effectiveSpace: "spacious_quiet" | "cozy_moderate" | "small_noisy" | null =
+        null;
+      if (spaceVotes.length > 0) {
+        const counts = { spacious_quiet: 0, cozy_moderate: 0, small_noisy: 0 };
+        for (const s of spaceVotes) counts[s]++;
+        effectiveSpace = (
+          ["spacious_quiet", "cozy_moderate", "small_noisy"] as const
+        ).sort((a, b) => counts[b] - counts[a])[0];
+      }
+
+      if (filters.powerEveryTable && effectivePower !== "all") return false;
+      if (filters.fastWifi && (effectiveWifi == null || effectiveWifi < 50))
         return false;
       if (filters.open24h && !c.open24h) return false;
-      if (filters.quietForCalls && !c.quietForCalls) return false;
-      if (filters.ergonomicDesk && !c.ergonomicDesk) return false;
-      if (filters.stayFriendly && !c.stayFriendly) return false;
+      if (filters.quietForCalls && effectiveSpace !== "spacious_quiet")
+        return false;
+
       if (q) {
         const hay =
           `${c.name} ${c.address} ${c.district} ${c.tags.join(" ")}`.toLowerCase();
@@ -201,7 +249,7 @@ export default function DeadlineRadarApp() {
       if (!a.featured && b.featured) return 1;
       return (b.score ?? 0) - (a.score ?? 0);
     });
-  }, [allCafes, filters, userLocation, onlyFavorites, favorites]);
+  }, [allCafes, reviews, filters, userLocation, onlyFavorites, favorites]);
 
   const selectedCafe = useMemo(
     () => allCafes.find((c) => c.id === selectedCafeId) ?? null,
