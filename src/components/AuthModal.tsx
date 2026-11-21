@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Lock, Mail, Upload, ShieldCheck, UserPlus, LogIn } from "lucide-react";
+import { X, Lock, Upload, ShieldCheck, UserPlus, LogIn } from "lucide-react";
 import {
   loginAsAdmin,
   loginLocalAccount,
-  loginWithGoogleAccount,
   registerLocalAccount,
 } from "@/lib/auth";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 interface AuthModalProps {
   onClose: () => void;
@@ -24,11 +25,6 @@ export default function AuthModal({
   // Login state
   const [loginId, setLoginId] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-
-  // Google sign-in state
-  const [showGoogleBox, setShowGoogleBox] = useState(false);
-  const [googleGmail, setGoogleGmail] = useState("");
-  const [googleName, setGoogleName] = useState("");
 
   // Register state
   const [regUsername, setRegUsername] = useState("");
@@ -68,17 +64,22 @@ export default function AuthModal({
     }
   };
 
-  const handleGoogleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = loginWithGoogleAccount({
-      gmail: googleGmail,
-      displayName: googleName,
-    });
-    if (res.ok) {
-      onClose();
-    } else {
-      setError(res.error || "Đăng nhập Google thất bại.");
+  const handleGoogleOAuthRedirect = () => {
+    if (!GOOGLE_CLIENT_ID) {
+      setError(
+        "Chưa cấu hình NEXT_PUBLIC_GOOGLE_CLIENT_ID (Google Cloud OAuth Client ID) trên Vercel. Hãy thêm biến này trong Vercel → Settings → Environment Variables rồi Redeploy."
+      );
+      return;
     }
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: redirectUri,
+      response_type: "token",
+      scope: "openid email profile",
+      prompt: "select_account",
+    });
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   };
 
   const handleRegister = (e: React.FormEvent) => {
@@ -180,76 +181,32 @@ export default function AuthModal({
           {/* LOGIN TAB */}
           {tab === "login" && (
             <div className="space-y-4">
-              {/* Google Sign-In Button */}
-              {!showGoogleBox ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowGoogleBox(true);
-                    setError("");
-                  }}
-                  className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 font-semibold text-slate-700 transition cursor-pointer"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"
-                    />
-                  </svg>
-                  Đăng nhập bằng Google (Gmail)
-                </button>
-              ) : (
-                <form
-                  onSubmit={handleGoogleLogin}
-                  className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 space-y-2.5"
-                >
-                  <div className="flex items-center justify-between text-xs font-bold text-blue-900">
-                    <span className="flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5" /> Tiếp tục với Google
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowGoogleBox(false)}
-                      className="text-blue-600 hover:underline cursor-pointer"
-                    >
-                      Đóng
-                    </button>
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={googleGmail}
-                    onChange={(e) => setGoogleGmail(e.target.value)}
-                    placeholder="Nhập Gmail của bạn (vd: ten@gmail.com)"
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-blue-200 bg-white outline-none focus:border-blue-500"
+              {/* Real Google Cloud OAuth 2.0 Sign-In Button */}
+              <button
+                type="button"
+                onClick={handleGoogleOAuthRedirect}
+                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 font-semibold text-slate-700 transition cursor-pointer"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"
                   />
-                  <input
-                    type="text"
-                    value={googleName}
-                    onChange={(e) => setGoogleName(e.target.value)}
-                    placeholder="Tên hiển thị (tùy chọn)"
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-blue-200 bg-white outline-none focus:border-blue-500"
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z"
                   />
-                  <button
-                    type="submit"
-                    className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
-                  >
-                    Đăng nhập ngay với Gmail
-                  </button>
-                </form>
-              )}
+                  <path
+                    fill="#FBBC05"
+                    d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"
+                  />
+                </svg>
+                Đăng nhập bằng Google
+              </button>
 
               <div className="relative flex items-center py-1">
                 <div className="flex-grow border-t border-slate-200" />
