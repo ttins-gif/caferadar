@@ -21,12 +21,13 @@ import {
   updateUserAvatar,
   UserAccount,
 } from "@/lib/auth";
-import { updateReviewsAvatarForUser } from "@/lib/storage";
+import { loadReviews, updateReviewsAvatarForUser } from "@/lib/storage";
 import {
   fetchCloudReviews,
   insertCloudReview,
   isSupabaseConfigured,
 } from "@/lib/supabase";
+import { ContributorStats, getContributorStats } from "@/lib/badges";
 
 export default function AccountProfilePage() {
   const [user, setUser] = useState<UserAccount | null>(null);
@@ -34,6 +35,11 @@ export default function AccountProfilePage() {
   const [gmailInput, setGmailInput] = useState("");
   const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [badgeStats, setBadgeStats] = useState<ContributorStats>({
+    isActiveContributor: false,
+    uniqueCafesCount: 0,
+    maxStreakDays: 0,
+  });
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -45,6 +51,19 @@ export default function AccountProfilePage() {
     if (current) {
       setDisplayName(current.displayName);
       setGmailInput(current.gmail || "");
+      const localRevs = loadReviews();
+      setBadgeStats(
+        getContributorStats(localRevs, current.id, current.displayName)
+      );
+      if (isSupabaseConfigured) {
+        fetchCloudReviews().then((cloudRevs) => {
+          if (cloudRevs.length > 0) {
+            setBadgeStats(
+              getContributorStats(cloudRevs, current.id, current.displayName)
+            );
+          }
+        });
+      }
     }
   };
 
@@ -214,14 +233,32 @@ export default function AccountProfilePage() {
               )}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {user.displayName}
-              </h2>
-              <p className="text-xs text-slate-500">
+              {badgeStats.isActiveContributor ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="active-contributor-frame inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-extrabold text-amber-950">
+                    <span className="text-amber-600 animate-pulse">✦</span>
+                    <span>{user.displayName}</span>
+                    <span className="text-fuchsia-600 animate-pulse">✦</span>
+                  </span>
+                  <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    Người dùng năng nổ
+                  </span>
+                </div>
+              ) : (
+                <h2 className="text-lg font-bold text-slate-900">
+                  {user.displayName}
+                </h2>
+              )}
+              <p className="text-xs text-slate-500 mt-0.5">
                 @{user.username} •{" "}
                 {user.provider === "google"
                   ? "Đăng nhập bằng Google"
                   : "Tài khoản CafeRadar"}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Tiến độ <strong>Người dùng năng nổ</strong>: Chuỗi{" "}
+                <strong>{badgeStats.maxStreakDays}/7 ngày</strong> • Đã đánh giá{" "}
+                <strong>{badgeStats.uniqueCafesCount}/10 quán</strong>
               </p>
               <label className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer">
                 <Upload className="w-3.5 h-3.5" /> Đổi ảnh đại diện
