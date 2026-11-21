@@ -28,7 +28,8 @@ export async function fetchCloudCafes(): Promise<Cafe[]> {
     .filter(
       (row) =>
         !String(row.id).startsWith("views:") &&
-        !String(row.id).startsWith("feedback:")
+        !String(row.id).startsWith("feedback:") &&
+        !String(row.id).startsWith("account:")
     )
     .map((row) => row.data as Cafe);
 }
@@ -270,5 +271,36 @@ export async function deleteSiteFeedback(id: string): Promise<void> {
   const sb = getSupabase();
   if (sb) {
     await sb.from("public_cafes").delete().eq("id", `feedback:${id}`);
+  }
+}
+
+/**
+ * Đồng bộ hồ sơ tài khoản (Avatar, Tên hiển thị, 7 ngày cooldown, đặc quyền Admin)
+ * lên Supabase để đăng nhập trên PC, iPhone, Android, Tablet đều trùng khớp 100%.
+ */
+export async function upsertCloudAccount(
+  key: string,
+  account: Record<string, unknown>
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb || !key) return;
+  await sb.from("public_cafes").upsert({
+    id: `account:${key.toLowerCase()}`,
+    data: account,
+  });
+}
+
+export async function fetchCloudAccount<T>(key: string): Promise<T | null> {
+  const sb = getSupabase();
+  if (!sb || !key) return null;
+  try {
+    const { data } = await sb
+      .from("public_cafes")
+      .select("data")
+      .eq("id", `account:${key.toLowerCase()}`)
+      .maybeSingle();
+    return (data?.data as T) ?? null;
+  } catch {
+    return null;
   }
 }
