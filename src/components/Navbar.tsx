@@ -13,6 +13,8 @@ import {
   Plus,
   LogIn,
   MessageSquareHeart,
+  Moon,
+  Sun,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -40,6 +42,29 @@ export default function Navbar({ onOpenAddModal }: NavbarProps) {
   const [role, setRole] = useState<UserRole>("user");
   const [user, setUser] = useState<UserAccount | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("caferadar_theme_v1");
+      const isDark = savedTheme === "dark";
+      setDarkMode(isDark);
+      document.documentElement.classList.toggle("dark", isDark);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle("dark", next);
+    try {
+      localStorage.setItem("caferadar_theme_v1", next ? "dark" : "light");
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     const sync = () => {
@@ -115,8 +140,21 @@ export default function Navbar({ onOpenAddModal }: NavbarProps) {
             })}
           </div>
 
-          {/* Right: User Account / Login + Add Cafe */}
+          {/* Right: Dark Mode + User Account / Login + Add Cafe */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={toggleDarkMode}
+              title={darkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối (Dark Mode)"}
+              aria-label="Đổi chế độ Sáng/Tối"
+              className="p-2 rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+            >
+              {darkMode ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-slate-600" />
+              )}
+            </button>
             {role === "admin" && (
               <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-800 px-2 py-1 rounded-lg text-xs font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
