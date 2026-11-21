@@ -26,6 +26,7 @@ import {
   Star,
   MessageSquarePlus,
   Sparkles as SpaceIcon,
+  ImagePlus,
 } from "lucide-react";
 import {
   Cafe,
@@ -53,6 +54,7 @@ interface WorkspaceScorecardProps {
   onDeleteCafe?: (cafeId: string) => void;
   onDeleteCheckIn?: (checkInId: string) => void;
   reviews?: CafeReview[];
+  allReviews?: CafeReview[];
   onAddReview?: (review: CafeReview) => void;
   onDeleteReview?: (reviewId: string) => void;
 }
@@ -112,6 +114,15 @@ function formatTimeRemaining(expiresAt: string): string {
   return `hết hạn sau ${mins}p`;
 }
 
+function getVietnamDateKey(isoOrDate: string | Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate);
+}
+
 export default function WorkspaceScorecard({
   cafe,
   activeCheckIns,
@@ -125,6 +136,7 @@ export default function WorkspaceScorecard({
   onDeleteCafe,
   onDeleteCheckIn,
   reviews = [],
+  allReviews = [],
   onAddReview,
   onDeleteReview,
 }: WorkspaceScorecardProps) {
@@ -141,17 +153,83 @@ export default function WorkspaceScorecard({
   const [reviewWifi, setReviewWifi] = useState("");
   const [reviewPower, setReviewPower] = useState<string>("");
   const [reviewSpace, setReviewSpace] = useState<string>("");
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewError, setReviewError] = useState("");
 
   const currentUser = getCurrentUser();
+  const actorId = currentUser?.id || "guest";
+
+  // Kiểm tra giới hạn Live 6h: mỗi user chỉ 1 lần / quán trong 6h (tự reset khi hết hạn 6h)
+  const hasCheckedInThisCafe = activeCheckIns.some(
+    (ci) => (ci.authorId || "guest") === actorId
+  );
+
+  // Kiểm tra giới hạn đánh giá: tối đa 3 quán / ngày, mỗi quán 1 lần / ngày (reset qua ngày giờ VN)
+  const todayVn = getVietnamDateKey(new Date());
+  const sourceReviews = allReviews.length > 0 ? allReviews : reviews;
+  const todaysUserReviews = sourceReviews.filter(
+    (r) =>
+      (r.authorId || "guest") === actorId &&
+      getVietnamDateKey(r.createdAt) === todayVn
+  );
+  const alreadyReviewedThisCafeToday = todaysUserReviews.some(
+    (r) => r.cafeId === cafe.id
+  );
+  const distinctCafesReviewedToday = new Set(
+    todaysUserReviews.map((r) => r.cafeId)
+  ).size;
+  const reachedDailyReviewLimit = distinctCafesReviewedToday >= 3;
+
+  const handleReviewImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (files.length === 0) return;
+
+    const remainingSlots = 3 - reviewImages.length;
+    if (remainingSlots <= 0) {
+      setReviewError("Tối đa 3 hình ảnh cho mỗi bài đánh giá.");
+      return;
+    }
+
+    const selected = files.slice(0, remainingSlots);
+    for (const file of selected) {
+      if (file.size > 1024 * 1024) {
+        setReviewError("Mỗi ảnh tối đa 1MB.");
+        continue;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setReviewImages((prev) =>
+            prev.length < 3 ? [...prev, reader.result as string] : prev
+          );
+          setReviewError("");
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!onAddReview || !reviewComment.trim()) return;
+    if (alreadyReviewedThisCafeToday) {
+      setReviewError(
+        "Bạn đã đánh giá quán này hôm nay rồi (mỗi quán 1 lần/ngày, reset vào ngày mai)."
+      );
+      return;
+    }
+    if (reachedDailyReviewLimit) {
+      setReviewError(
+        "Bạn đã đạt giới hạn tối đa 3 quán/ngày (reset khi qua ngày mới)."
+      );
+      return;
+    }
     onAddReview({
       id: `rev-${Date.now()}`,
       cafeId: cafe.id,
-      authorId: currentUser?.id,
+      authorId: actorId,
       authorName: currentUser?.displayName || "Thành viên ẩn danh",
       authorAvatar: currentUser?.avatarUrl,
       rating: reviewRating,
@@ -160,6 +238,7 @@ export default function WorkspaceScorecard({
         ? (reviewPower as PowerOutletCoverage)
         : undefined,
       spaceRating: reviewSpace ? (reviewSpace as SpaceRating) : undefined,
+      images: reviewImages.length > 0 ? reviewImages : undefined,
       comment: reviewComment.trim(),
       createdAt: new Date().toISOString(),
     });
@@ -167,7 +246,9 @@ export default function WorkspaceScorecard({
     setReviewWifi("");
     setReviewPower("");
     setReviewSpace("");
+    setReviewImages([]);
     setReviewComment("");
+    setReviewError("");
     setShowReviewForm(false);
   };
 
@@ -376,10 +457,20 @@ export default function WorkspaceScorecard({
             </div>
             <button
               type="button"
+              disabled={hasCheckedInThisCafe}
               onClick={() => setShowCheckInPicker((v) => !v)}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+              title={
+                hasCheckedInThisCafe
+                  ? "Bạn đã cập nhật tình trạng quán này trong 6h qua"
+                  : "Cập nhật tình trạng thực tế"
+              }
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {showCheckInPicker ? "Đóng" : "+ Cập nhật 1 chạm"}
+              {hasCheckedInThisCafe
+                ? "Đã check-in (6h)"
+                : showCheckInPicker
+                ? "Đóng"
+                : "+ Cập nhật 1 chạm"}
             </button>
           </div>
 
@@ -741,21 +832,82 @@ export default function WorkspaceScorecard({
                 <option value="small_noisy">Nhỏ / Hơi ồn (hợp trò chuyện hơn)</option>
               </select>
 
-              <textarea
-                required
-                rows={2}
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-                placeholder="Chia sẻ trải nghiệm thực tế của bạn khi ngồi làm việc tại quán..."
-                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none resize-none"
-              />
+              {reviewError && (
+                <div className="p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-medium">
+                  {reviewError}
+                </div>
+              )}
 
-              <button
-                type="submit"
-                className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold cursor-pointer"
-              >
-                Gửi đánh giá thực tế
-              </button>
+              {alreadyReviewedThisCafeToday ? (
+                <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+                  Bạn đã đánh giá quán này hôm nay rồi (mỗi quán 1 lần/ngày, tự reset vào ngày mai).
+                </div>
+              ) : reachedDailyReviewLimit ? (
+                <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold">
+                  Bạn đã đạt giới hạn tối đa 3 quán/ngày (tự reset khi qua ngày mới).
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    required
+                    rows={2}
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Chia sẻ trải nghiệm thực tế của bạn khi ngồi làm việc tại quán..."
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none resize-none"
+                  />
+
+                  {/* Thêm hình ảnh (tối đa 3 ảnh) */}
+                  <div className="space-y-2">
+                    <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-[11px] font-semibold text-slate-700 cursor-pointer">
+                      <ImagePlus className="w-3.5 h-3.5 text-indigo-600" />
+                      Thêm hình ảnh ({reviewImages.length}/3)
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleReviewImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {reviewImages.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {reviewImages.map((img, idx) => (
+                          <div
+                            key={idx}
+                            className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200"
+                          >
+                            <img
+                              src={img}
+                              alt={`Ảnh ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReviewImages((prev) =>
+                                  prev.filter((_, i) => i !== idx)
+                                )
+                              }
+                              className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-slate-900/75 text-white text-[10px] flex items-center justify-center cursor-pointer"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold cursor-pointer"
+                  >
+                    Gửi đánh giá thực tế ({distinctCafesReviewedToday}/3 quán hôm nay)
+                  </button>
+                </>
+              )}
             </form>
           )}
 
@@ -914,6 +1066,25 @@ export default function WorkspaceScorecard({
                     )}
                   </div>
                   <p className="text-slate-700 leading-relaxed">{rev.comment}</p>
+                  {rev.images && rev.images.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      {rev.images.map((src, i) => (
+                        <a
+                          key={i}
+                          href={src}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 hover:opacity-90 transition block"
+                        >
+                          <img
+                            src={src}
+                            alt={`Ảnh đánh giá ${i + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   {(rev.wifiDownload || rev.powerOutlets || rev.spaceRating) && (
                     <div className="flex items-center flex-wrap gap-2 text-[11px] text-slate-500 pt-0.5">
                       {rev.wifiDownload && <span>📶 {rev.wifiDownload} Mbps</span>}
