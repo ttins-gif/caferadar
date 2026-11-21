@@ -517,7 +517,7 @@ export default function WorkspaceScorecard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
               <Coffee className="w-4 h-4 text-indigo-500" />
-              <span>Giá nước & Thái độ nhân viên</span>
+              <span>Giới thiệu quán & Giá nước</span>
             </div>
             <span className="text-sm font-bold text-slate-900">
               {cafe.priceRange}
