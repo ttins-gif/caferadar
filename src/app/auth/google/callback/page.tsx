@@ -3,7 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loginWithGoogleAccount } from "@/lib/auth";
+import {
+  loginWithGoogleAccount,
+  syncCurrentUserFromCloud,
+} from "@/lib/auth";
 
 export default function GoogleAuthCallbackPage() {
   const router = useRouter();
@@ -65,6 +68,8 @@ export default function GoogleAuthCallbackPage() {
           return;
         }
 
+        // Đồng bộ ngay hồ sơ (Avatar, Tên hiển thị, đặc quyền) từ Supabase giữa PC & iPhone
+        await syncCurrentUserFromCloud();
         router.replace("/");
       } catch {
         setError("Đã xảy ra lỗi khi kết nối với Google.");
