@@ -30,12 +30,14 @@ import {
 import {
   loadActiveCheckIns,
   loadFavorites,
-  loadUserCafes,
+  loadMergedCafes,
   saveCheckIns,
   saveFavorites,
   SIX_HOURS_MS,
 } from "@/lib/storage";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
+import { getCurrentUser, getStoredRole } from "@/lib/auth";
+import { insertCloudCheckIn } from "@/lib/supabase";
 
 const NOISE_LABEL: Record<NoiseLevel, { text: string; cls: string }> = {
   quiet: {
@@ -54,23 +56,24 @@ const NOISE_LABEL: Record<NoiseLevel, { text: string; cls: string }> = {
 
 export default function CafeDetailPage() {
   const params = useParams<{ id: string }>();
-  const [userCafes, setUserCafes] = useState<Cafe[]>([]);
+  const [allCafes, setAllCafes] = useState<Cafe[]>(SEED_CAFES);
   const [checkIns, setCheckIns] = useState<LiveCheckIn[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [justCheckedIn, setJustCheckedIn] = useState<CheckInStatusType | null>(
     null
   );
 
   useEffect(() => {
-    setUserCafes(loadUserCafes());
+    setAllCafes(loadMergedCafes(SEED_CAFES));
     setCheckIns(loadActiveCheckIns());
     setFavorites(loadFavorites());
+    setIsAdmin(getStoredRole() === "admin");
   }, []);
 
   const cafe = useMemo(() => {
-    const all = [...userCafes, ...SEED_CAFES];
-    return all.find((c) => c.id === params.id) ?? null;
-  }, [userCafes, params.id]);
+    return allCafes.find((c) => c.id === params.id) ?? null;
+  }, [allCafes, params.id]);
 
   const activeCheckIns = useMemo(() => {
     if (!cafe) return [];
@@ -80,12 +83,18 @@ export default function CafeDetailPage() {
     );
   }, [checkIns, cafe]);
 
+  const actorId = getCurrentUser()?.id || "guest";
+  const hasCheckedInThisCafe =
+    !isAdmin &&
+    activeCheckIns.some((ci) => (ci.authorId || "guest") === actorId);
+
   const handleCheckIn = (type: CheckInStatusType) => {
-    if (!cafe) return;
+    if (!cafe || hasCheckedInThisCafe) return;
     const now = Date.now();
     const item: LiveCheckIn = {
       id: `ci-${now}`,
       cafeId: cafe.id,
+      authorId: actorId,
       type,
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + SIX_HOURS_MS).toISOString(),
@@ -93,6 +102,7 @@ export default function CafeDetailPage() {
     const next = [item, ...checkIns];
     setCheckIns(next);
     saveCheckIns(next);
+    void insertCloudCheckIn(item);
     setJustCheckedIn(type);
     setTimeout(() => setJustCheckedIn(null), 3000);
   };
@@ -366,19 +376,25 @@ export default function CafeDetailPage() {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2 mb-4">
-            {(Object.keys(CHECKIN_META) as CheckInStatusType[]).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => handleCheckIn(type)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
-              >
-                <span>{CHECKIN_META[type].emoji}</span>
-                <span>{CHECKIN_META[type].label}</span>
-              </button>
-            ))}
-          </div>
+          {hasCheckedInThisCafe ? (
+            <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+              Bạn đã cập nhật tình trạng quán này trong 6 giờ qua (tự mở lại sau khi hết hạn 6 tiếng).
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {(Object.keys(CHECKIN_META) as CheckInStatusType[]).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handleCheckIn(type)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
+                >
+                  <span>{CHECKIN_META[type].emoji}</span>
+                  <span>{CHECKIN_META[type].label}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {activeCheckIns.length === 0 ? (
             <p className="text-xs text-slate-500">
