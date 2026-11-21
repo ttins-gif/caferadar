@@ -17,6 +17,8 @@ import {
   Sparkles,
   Bookmark,
   CheckCircle2,
+  Eye,
+  Camera,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { SEED_CAFES } from "@/data/seedCafes";
@@ -31,13 +33,19 @@ import {
   loadActiveCheckIns,
   loadFavorites,
   loadMergedCafes,
+  loadReviews,
   saveCheckIns,
   saveFavorites,
   SIX_HOURS_MS,
 } from "@/lib/storage";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
 import { getCurrentUser, getStoredRole } from "@/lib/auth";
-import { insertCloudCheckIn } from "@/lib/supabase";
+import {
+  fetchCloudReviews,
+  insertCloudCheckIn,
+  isSupabaseConfigured,
+  recordUniqueCafeView,
+} from "@/lib/supabase";
 
 const NOISE_LABEL: Record<NoiseLevel, { text: string; cls: string }> = {
   quiet: {
@@ -60,6 +68,8 @@ export default function CafeDetailPage() {
   const [checkIns, setCheckIns] = useState<LiveCheckIn[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [viewCount, setViewCount] = useState<number | null>(null);
+  const [communityPhotos, setCommunityPhotos] = useState<string[]>([]);
   const [justCheckedIn, setJustCheckedIn] = useState<CheckInStatusType | null>(
     null
   );
@@ -69,7 +79,47 @@ export default function CafeDetailPage() {
     setCheckIns(loadActiveCheckIns());
     setFavorites(loadFavorites());
     setIsAdmin(getStoredRole() === "admin");
-  }, []);
+
+    // Lấy ảnh thực tế từ các bài đánh giá của quán
+    const collectPhotos = (revs: { cafeId: string; images?: string[] }[]) => {
+      const imgs: string[] = [];
+      for (const r of revs) {
+        if (r.cafeId === params.id && r.images) {
+          for (const src of r.images) {
+            if (!imgs.includes(src)) imgs.push(src);
+          }
+        }
+      }
+      setCommunityPhotos(imgs.slice(0, 4));
+    };
+
+    collectPhotos(loadReviews());
+    if (isSupabaseConfigured) {
+      fetchCloudReviews().then((cloudRevs) => {
+        if (cloudRevs.length > 0) collectPhotos(cloudRevs);
+      });
+    }
+
+    // Ghi nhận 1 lượt mắt xem duy nhất cho mỗi account (mỗi account chỉ tính 1 lần)
+    const user = getCurrentUser();
+    let viewerId = user?.id;
+    if (!viewerId) {
+      try {
+        viewerId = localStorage.getItem("caferadar_guest_id_v1") || "";
+        if (!viewerId) {
+          viewerId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          localStorage.setItem("caferadar_guest_id_v1", viewerId);
+        }
+      } catch {
+        viewerId = "guest_anon";
+      }
+    }
+    if (params.id) {
+      recordUniqueCafeView(params.id, viewerId).then((count) => {
+        setViewCount(count);
+      });
+    }
+  }, [params.id]);
 
   const cafe = useMemo(() => {
     return allCafes.find((c) => c.id === params.id) ?? null;
@@ -195,6 +245,15 @@ export default function CafeDetailPage() {
                 <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg">
                   {cafe.district}
                 </span>
+                {viewCount != null && (
+                  <span
+                    title="Số lượng tài khoản đã xem chi tiết quán này (mỗi tài khoản chỉ tính 1 lần)"
+                    className="inline-flex items-center gap-1 text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-slate-500" />
+                    {viewCount} lượt xem
+                  </span>
+                )}
                 {cafe.open24h && (
                   <span className="text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200 px-2.5 py-1 rounded-lg">
                     Mở 24/7
@@ -250,6 +309,57 @@ export default function CafeDetailPage() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* Hình ảnh không gian quán */}
+        <section className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
+              <Camera className="w-4 h-4 text-indigo-600" />
+              <span>Hình ảnh không gian quán</span>
+            </div>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1"
+            >
+              Xem thêm ảnh trên Google Maps <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+
+          {(() => {
+            const gallery = [...(cafe.photos ?? []), ...communityPhotos].slice(
+              0,
+              4
+            );
+            if (gallery.length === 0) {
+              return (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-xs text-slate-500">
+                  Chưa có ảnh không gian quán được tải lên. Admin có thể cập nhật ảnh trong mục <strong>Sửa quán</strong> hoặc User có thể đính kèm ảnh thực tế khi viết đánh giá!
+                </div>
+              );
+            }
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {gallery.map((src, idx) => (
+                  <a
+                    key={idx}
+                    href={src}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="aspect-[16/10] rounded-xl overflow-hidden border border-slate-200 bg-slate-100 block hover:opacity-95 transition"
+                  >
+                    <img
+                      src={src}
+                      alt={`${cafe.name} - Không gian ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
+            );
+          })()}
         </section>
 
         {/* Metrics Grid */}
