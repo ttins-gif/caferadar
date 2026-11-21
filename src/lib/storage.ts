@@ -167,3 +167,26 @@ export function deleteReviewById(reviewId: string): CafeReview[] {
   }
   return next;
 }
+
+export function updateReviewsAvatarForUser(
+  userId: string,
+  displayName: string,
+  newAvatarUrl: string
+): CafeReview[] {
+  const all = loadReviews();
+  const changed: CafeReview[] = [];
+  const next = all.map((r) => {
+    if (r.authorId === userId || (!r.authorId && r.authorName === displayName)) {
+      const updated = { ...r, authorId: userId, authorAvatar: newAvatarUrl };
+      changed.push(updated);
+      return updated;
+    }
+    return r;
+  });
+  try {
+    localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+  return changed;
+}
