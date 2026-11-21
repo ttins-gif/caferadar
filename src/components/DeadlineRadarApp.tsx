@@ -192,10 +192,11 @@ export default function DeadlineRadarApp() {
     saveCheckIns(next);
   };
 
-  const handleAddCafe = (cafe: Cafe) => {
+  const handleAddCafe = (cafe: Cafe, firstReview: CafeReview) => {
     const nextUser = [cafe, ...loadUserCafes()];
     saveUserCafes(nextUser);
     setAllCafes(loadMergedCafes(SEED_CAFES));
+    setReviews(addReview(firstReview));
     setSelectedCafeId(cafe.id);
   };
 
