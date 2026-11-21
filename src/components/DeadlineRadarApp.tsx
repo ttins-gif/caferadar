@@ -37,7 +37,7 @@ import {
   saveUserCafes,
   SIX_HOURS_MS,
 } from "@/lib/storage";
-import { getStoredRole, UserRole } from "@/lib/auth";
+import { getCurrentUser, getStoredRole, UserRole } from "@/lib/auth";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
 import {
   deleteCloudCafe,
@@ -278,9 +278,11 @@ export default function DeadlineRadarApp() {
 
   const handleAddCheckIn = (cafeId: string, type: CheckInStatusType) => {
     const now = Date.now();
+    const actorId = getCurrentUser()?.id || "guest";
     const newItem: LiveCheckIn = {
       id: `ci-${now}`,
       cafeId,
+      authorId: actorId,
       type,
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + SIX_HOURS_MS).toISOString(),
@@ -586,6 +588,7 @@ export default function DeadlineRadarApp() {
                 onDeleteCafe={handleDeleteCafe}
                 onDeleteCheckIn={handleDeleteCheckIn}
                 reviews={reviews.filter((r) => r.cafeId === selectedCafe.id)}
+                allReviews={reviews}
                 onAddReview={handleAddReview}
                 onDeleteReview={handleDeleteReview}
                 distanceKm={
