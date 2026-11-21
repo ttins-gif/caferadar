@@ -16,7 +16,6 @@ import {
 import {
   getCurrentUser,
   getStoredRole,
-  logoutAdmin,
   logoutUser,
   UserAccount,
   UserRole,
@@ -112,18 +111,10 @@ export default function Navbar({ onOpenAddModal }: NavbarProps) {
           {/* Right: User Account / Login + Add Cafe */}
           <div className="flex items-center gap-2 shrink-0">
             {role === "admin" && (
-              <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-800 px-2 py-1 rounded-lg text-xs font-bold">
+              <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-800 px-2 py-1 rounded-lg text-xs font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
                 <span className="hidden sm:inline">Admin</span>
-                <button
-                  type="button"
-                  onClick={logoutAdmin}
-                  title="Thoát quyền Admin"
-                  className="ml-0.5 p-0.5 rounded hover:bg-amber-200/70 text-amber-700 cursor-pointer"
-                >
-                  <LogOut className="w-3 h-3" />
-                </button>
-              </div>
+              </span>
             )}
 
             {user ? (
