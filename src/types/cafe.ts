@@ -4,6 +4,8 @@ export type NoiseLevel = "quiet" | "moderate" | "busy";
 
 export type PowerOutletCoverage = "all" | "scattered" | "rare";
 
+export type SpaceRating = "spacious_quiet" | "cozy_moderate" | "small_noisy";
+
 export type CheckInStatusType =
   | "wifi_lag"
   | "noisy_construction"
@@ -29,6 +31,7 @@ export interface CafeReview {
   rating: number; // 1 - 5
   wifiDownload?: number;
   powerOutlets?: PowerOutletCoverage;
+  spaceRating?: SpaceRating;
   comment: string;
   createdAt: string;
 }
