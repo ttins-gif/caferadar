@@ -29,3 +29,5 @@ File [`supabase/schema.sql`](./supabase/schema.sql) đã chuẩn bị sẵn:
 - Bảng `cafes` (có cột `location` kiểu `geography(Point, 4326)`)
 - Bảng `live_checkins` (tự động set `expires_at = now() + interval '6 hours'`)
 - RPC `get_nearby_cafes(user_lat, user_lng, radius_meters)`
+
+<!-- supabase-connected -->
