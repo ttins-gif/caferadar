@@ -40,6 +40,7 @@ import {
 } from "@/types/cafe";
 import { getRealtimeOpenStatus } from "@/lib/realtime";
 import { getCurrentUser } from "@/lib/auth";
+import { getContributorStats } from "@/lib/badges";
 
 interface WorkspaceScorecardProps {
   cafe: Cafe;
@@ -1038,9 +1039,32 @@ export default function WorkspaceScorecard({
                         })()}
                       </div>
                       <div>
-                        <div className="font-bold text-slate-800 leading-tight">
-                          {rev.authorName}
-                        </div>
+                        {(() => {
+                          const stats = getContributorStats(
+                            sourceReviews,
+                            rev.authorId,
+                            rev.authorName
+                          );
+                          return stats.isActiveContributor ? (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                title={`Người dùng năng nổ • ${stats.reason}`}
+                                className="active-contributor-frame inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold text-amber-950 leading-tight"
+                              >
+                                <span className="text-amber-600 animate-pulse">✦</span>
+                                <span>{rev.authorName}</span>
+                                <span className="text-fuchsia-600 animate-pulse">✦</span>
+                              </span>
+                              <span className="text-[10px] font-bold text-amber-700">
+                                Người dùng năng nổ
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="font-bold text-slate-800 leading-tight">
+                              {rev.authorName}
+                            </div>
+                          );
+                        })()}
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-amber-500 text-[11px] leading-none">
                             {"★".repeat(rev.rating)}
