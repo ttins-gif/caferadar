@@ -120,23 +120,20 @@ export default function WorkspaceScorecard({
   const [selectedStarFilter, setSelectedStarFilter] = useState<number | null>(
     null
   );
-  const [reviewAuthor, setReviewAuthor] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewWifi, setReviewWifi] = useState("");
   const [reviewPower, setReviewPower] = useState<string>("");
   const [reviewComment, setReviewComment] = useState("");
 
+  const currentUser = getCurrentUser();
+
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!onAddReview || !reviewComment.trim()) return;
-    const currentUser = getCurrentUser();
     onAddReview({
       id: `rev-${Date.now()}`,
       cafeId: cafe.id,
-      authorName:
-        reviewAuthor.trim() ||
-        currentUser?.displayName ||
-        "Thành viên CafeRadar",
+      authorName: currentUser?.displayName || "Thành viên ẩn danh",
       rating: reviewRating,
       wifiDownload: reviewWifi.trim() ? Number(reviewWifi) : undefined,
       powerOutlets: reviewPower
@@ -145,7 +142,6 @@ export default function WorkspaceScorecard({
       comment: reviewComment.trim(),
       createdAt: new Date().toISOString(),
     });
-    setReviewAuthor("");
     setReviewRating(5);
     setReviewWifi("");
     setReviewPower("");
@@ -624,23 +620,39 @@ export default function WorkspaceScorecard({
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  value={reviewAuthor}
-                  onChange={(e) => setReviewAuthor(e.target.value)}
-                  placeholder="Tên của bạn (tùy chọn)"
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none"
-                />
-                <input
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={reviewWifi}
-                  onChange={(e) => setReviewWifi(e.target.value)}
-                  placeholder="Wi-Fi đo được (Mbps)"
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none"
-                />
+              {/* Hiển thị tự động Tên hiển thị của tài khoản đang đăng nhập */}
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200">
+                <div className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center overflow-hidden shrink-0">
+                  {currentUser?.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.displayName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    (currentUser?.displayName?.[0] || "A").toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <span className="text-slate-500">Đánh giá với tên: </span>
+                  <strong className="text-slate-900">
+                    {currentUser?.displayName || "Thành viên ẩn danh"}
+                  </strong>
+                </div>
               </div>
+
+              {/* Chọn mức độ Wi-Fi gợi ý dễ hiểu */}
+              <select
+                value={reviewWifi}
+                onChange={(e) => setReviewWifi(e.target.value)}
+                className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white outline-none"
+              >
+                <option value="">Tốc độ Wi-Fi cảm nhận (tùy chọn)</option>
+                <option value="15">Yếu / Lag (~15 Mbps)</option>
+                <option value="40">Ổn — lướt web, làm việc (~40 Mbps)</option>
+                <option value="80">Mạnh — họp Zoom, gửi file mượt (~80 Mbps)</option>
+                <option value="150">Cực mạnh — tải file nặng siêu nhanh (~150 Mbps)</option>
+              </select>
 
               <select
                 value={reviewPower}
