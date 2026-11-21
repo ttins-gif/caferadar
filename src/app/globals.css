@@ -78,6 +78,26 @@ html.dark .bg-slate-100 {
   background-color: #1e293b !important;
 }
 
+html.dark .bg-slate-200 {
+  background-color: #334155 !important;
+}
+
+html.dark .bg-indigo-50,
+html.dark .bg-indigo-50\/70,
+html.dark .bg-indigo-50\/50 {
+  background-color: rgba(79, 70, 229, 0.24) !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/70 {
+  background-color: rgba(217, 119, 6, 0.18) !important;
+}
+
+html.dark .text-indigo-700,
+html.dark .text-indigo-600 {
+  color: #a5b4fc !important;
+}
+
 html.dark .border-slate-200,
 html.dark .border-slate-300,
 html.dark .border-slate-100 {
