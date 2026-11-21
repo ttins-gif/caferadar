@@ -183,6 +183,16 @@ export default function DeadlineRadarApp() {
       if (filters.quietForCalls && !c.quietForCalls) return false;
       if (filters.ergonomicDesk && !c.ergonomicDesk) return false;
       if (filters.stayFriendly && !c.stayFriendly) return false;
+      if (userLocation) {
+        const distKm = haversineKm(
+          userLocation.lat,
+          userLocation.lng,
+          c.lat,
+          c.lng
+        );
+        // Chỉ hiển thị các quán thực sự gần bạn (trong bán kính 25 km)
+        if (distKm > 25) return false;
+      }
       if (q) {
         const hay =
           `${c.name} ${c.address} ${c.district} ${c.tags.join(" ")}`.toLowerCase();
@@ -358,9 +368,17 @@ export default function DeadlineRadarApp() {
               {filteredCafes.length}/{allCafes.length} quán phù hợp
             </span>
             <span>
-              {userLocation
-                ? "Sắp xếp: Gần bạn nhất"
-                : "Sắp xếp: Điểm chạy deadline"}
+              {userLocation ? (
+                <button
+                  type="button"
+                  onClick={() => setUserLocation(null)}
+                  className="text-indigo-600 font-semibold hover:underline cursor-pointer"
+                >
+                  Trong 25 km • Tắt Gần tôi
+                </button>
+              ) : (
+                "Sắp xếp: Điểm chạy deadline"
+              )}
             </span>
           </div>
 
