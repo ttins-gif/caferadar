@@ -10,6 +10,8 @@ export interface UserAccount {
   provider: "local" | "google";
   avatarUrl?: string;
   role: UserRole;
+  /** Admin có thể tự bật/tắt đặc quyền Người dùng năng nổ cho bản thân */
+  activeContributorOverride?: boolean;
   createdAt: string;
 }
 
@@ -330,4 +332,19 @@ export function linkUserGmail(gmail: string): {
   saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
   emitAuthChange();
   return { ok: true, user: updated };
+}
+
+export function toggleAdminSelfContributorBadge(): UserAccount | null {
+  const user = getCurrentUser();
+  if (!user || (!isAdminEmail(user.gmail) && user.role !== "admin")) {
+    return null;
+  }
+  const accounts = loadAllAccounts();
+  const updated: UserAccount = {
+    ...user,
+    activeContributorOverride: !user.activeContributorOverride,
+  };
+  saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
+  emitAuthChange();
+  return updated;
 }
