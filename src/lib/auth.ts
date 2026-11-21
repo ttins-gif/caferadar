@@ -1,3 +1,5 @@
+import { fetchCloudAccount, upsertCloudAccount } from "@/lib/supabase";
+
 export type UserRole = "user" | "admin";
 
 export interface UserAccount {
@@ -300,6 +302,7 @@ export function updateDisplayName(newDisplayName: string): {
     displayNameUpdatedAt: new Date().toISOString(),
   };
   saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
+  pushAccountToCloud(updated);
   emitAuthChange();
   return { ok: true, user: updated };
 }
@@ -310,6 +313,7 @@ export function updateUserAvatar(avatarUrl: string): UserAccount | null {
   const accounts = loadAllAccounts();
   const updated: UserAccount = { ...user, avatarUrl };
   saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
+  pushAccountToCloud(updated);
   emitAuthChange();
   return updated;
 }
@@ -335,6 +339,52 @@ export function linkUserGmail(gmail: string): {
   return { ok: true, user: updated };
 }
 
+function getAccountSyncKey(user: UserAccount): string {
+  return (user.gmail || user.username).trim().toLowerCase();
+}
+
+export function pushAccountToCloud(user: UserAccount) {
+  void upsertCloudAccount(
+    getAccountSyncKey(user),
+    user as unknown as Record<string, unknown>
+  );
+}
+
+/**
+ * Kéo hồ sơ tài khoản mới nhất từ Supabase về máy hiện tại (PC / iPhone / Android)
+ * để đảm bảo Avatar, Tên hiển thị, đặc quyền Admin luôn trùng khớp trên mọi thiết bị.
+ */
+export async function syncCurrentUserFromCloud(): Promise<UserAccount | null> {
+  const local = getCurrentUser();
+  if (!local) return null;
+  const key = getAccountSyncKey(local);
+  const cloud = await fetchCloudAccount<UserAccount>(key);
+  if (!cloud) {
+    // Chưa có trên cloud -> đẩy bản local lên cloud luôn
+    pushAccountToCloud(local);
+    return local;
+  }
+
+  const merged: UserAccount = {
+    ...local,
+    ...cloud,
+    role: isAdminEmail(cloud.gmail || local.gmail) ? "admin" : cloud.role,
+  };
+  const accounts = loadAllAccounts();
+  const exists = accounts.some((a) => a.id === merged.id);
+  const nextAccounts = exists
+    ? accounts.map((a) => (a.id === merged.id ? merged : a))
+    : [merged, ...accounts.filter((a) => a.id !== local.id)];
+  saveAllAccounts(nextAccounts);
+  try {
+    localStorage.setItem(CURRENT_USER_ID_KEY, merged.id);
+  } catch {
+    // ignore
+  }
+  emitAuthChange();
+  return merged;
+}
+
 export function toggleAdminSelfContributorBadge(): UserAccount | null {
   const user = getCurrentUser();
   if (!user || (!isAdminEmail(user.gmail) && user.role !== "admin")) {
@@ -346,6 +396,7 @@ export function toggleAdminSelfContributorBadge(): UserAccount | null {
     activeContributorOverride: !user.activeContributorOverride,
   };
   saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
+  pushAccountToCloud(updated);
   emitAuthChange();
   return updated;
 }
