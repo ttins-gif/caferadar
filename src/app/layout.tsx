@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   description:
     "CafeRadar giúp freelancer & dân văn phòng tìm quán cafe làm việc trên toàn quốc trong 3 giây: lọc theo ổ cắm từng bàn, Wi-Fi > 50Mbps, mở 24/7, không gian yên tĩnh.",
   icons: {
-    icon: "/logo.jpg",
-    shortcut: "/logo.jpg",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
     apple: "/logo.jpg",
   },
   openGraph: {
