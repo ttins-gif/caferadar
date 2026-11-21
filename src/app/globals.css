@@ -31,3 +31,24 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Khung tên hiển thị lấp lánh ngôi sao cho "Người dùng năng nổ" */
+@keyframes caferadar-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.active-contributor-frame {
+  background: linear-gradient(110deg, #fef3c7, #fde68a, #f5d0fe, #fef3c7);
+  background-size: 220% 220%;
+  animation: caferadar-shimmer 3s ease infinite;
+  border: 1px solid #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
