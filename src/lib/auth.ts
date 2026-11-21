@@ -196,7 +196,8 @@ export function loginWithGoogleAccount(params: {
     const updatedExisting: UserAccount = {
       ...existing,
       role: syncedRole,
-      avatarUrl: params.avatarUrl || existing.avatarUrl,
+      // Giữ nguyên avatar người dùng đã tự tải lên; chỉ dùng ảnh Google nếu chưa có avatar
+      avatarUrl: existing.avatarUrl || params.avatarUrl,
     };
     saveAllAccounts(
       accounts.map((a) => (a.id === existing.id ? updatedExisting : a))
