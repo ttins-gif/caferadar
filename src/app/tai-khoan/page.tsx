@@ -15,8 +15,10 @@ import Navbar from "@/components/Navbar";
 import {
   canChangeDisplayName,
   getCurrentUser,
+  isAdminEmail,
   linkUserGmail,
   logoutUser,
+  toggleAdminSelfContributorBadge,
   updateDisplayName,
   updateUserAvatar,
   UserAccount,
@@ -233,17 +235,18 @@ export default function AccountProfilePage() {
               )}
             </div>
             <div>
-              {badgeStats.isActiveContributor ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="active-contributor-frame inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-extrabold text-amber-950">
+              {badgeStats.isActiveContributor ||
+              user.activeContributorOverride ? (
+                <span className="relative group inline-flex items-center">
+                  <span className="active-contributor-frame inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-extrabold text-amber-950 cursor-default">
                     <span className="text-amber-600 animate-pulse">✦</span>
                     <span>{user.displayName}</span>
                     <span className="text-fuchsia-600 animate-pulse">✦</span>
                   </span>
-                  <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                    Người dùng năng nổ
+                  <span className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 -top-7 whitespace-nowrap z-20 px-2.5 py-0.5 rounded-md bg-slate-900 text-amber-300 text-[11px] font-bold shadow-md">
+                    ✦ Người dùng năng nổ
                   </span>
-                </div>
+                </span>
               ) : (
                 <h2 className="text-lg font-bold text-slate-900">
                   {user.displayName}
@@ -314,6 +317,45 @@ export default function AccountProfilePage() {
             )}
           </form>
         </section>
+
+        {/* Đặc quyền Admin: Tự cấp tất cả tính năng cho bản thân */}
+        {(isAdminEmail(user.gmail) || user.role === "admin") && (
+          <section className="bg-amber-50/70 rounded-2xl border border-amber-200 p-5 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold text-amber-950">
+                  Đặc quyền Admin (Tự cấp tính năng)
+                </h2>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Admin không bị giới hạn 3 đánh giá/ngày, không bị khóa check-in 6h và có thể tự bật khung tên lấp lánh <strong>Người dùng năng nổ</strong> ngay lập tức.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const updated = toggleAdminSelfContributorBadge();
+                  if (updated) {
+                    setMessage({
+                      type: "success",
+                      text: updated.activeContributorOverride
+                        ? "Đã bật khung tên lấp lánh Người dùng năng nổ cho tài khoản Admin!"
+                        : "Đã tắt khung tên Người dùng năng nổ.",
+                    });
+                  }
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 transition cursor-pointer ${
+                  user.activeContributorOverride
+                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    : "bg-white border border-amber-300 text-amber-900 hover:bg-amber-100"
+                }`}
+              >
+                {user.activeContributorOverride
+                  ? "✓ Đang bật Người dùng năng nổ"
+                  : "Bật Người dùng năng nổ"}
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* Linked Gmail */}
         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-3 shadow-xs">
