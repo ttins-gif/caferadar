@@ -186,8 +186,41 @@ export default function WorkspaceScorecard({
       ? reviews
       : reviews.filter((r) => r.rating === selectedStarFilter);
 
-  const powerInfo = cafe.powerOutlets
-    ? POWER_LABEL[cafe.powerOutlets]
+  // Tự động tổng hợp Wi-Fi & Ổ cắm từ đánh giá thật của cộng đồng
+  const wifiReadings = reviews
+    .map((r) => r.wifiDownload)
+    .filter((v): v is number => typeof v === "number" && v > 0);
+  const effectiveWifiDownload =
+    wifiReadings.length > 0
+      ? Math.round(
+          wifiReadings.reduce((a, b) => a + b, 0) / wifiReadings.length
+        )
+      : cafe.wifiDownload;
+  const wifiSourceLabel =
+    wifiReadings.length > 0
+      ? `Trung bình từ ${wifiReadings.length} người đo`
+      : cafe.wifiMeasuredAt
+      ? `Đo gần nhất: ${cafe.wifiMeasuredAt}`
+      : null;
+
+  const powerVotes = reviews
+    .map((r) => r.powerOutlets)
+    .filter((v): v is PowerOutletCoverage => Boolean(v));
+  let effectivePower: PowerOutletCoverage | null = cafe.powerOutlets;
+  if (powerVotes.length > 0) {
+    const counts: Record<PowerOutletCoverage, number> = {
+      all: 0,
+      scattered: 0,
+      rare: 0,
+    };
+    for (const p of powerVotes) counts[p]++;
+    effectivePower = (Object.keys(counts) as PowerOutletCoverage[]).sort(
+      (a, b) => counts[b] - counts[a]
+    )[0];
+  }
+
+  const powerInfo = effectivePower
+    ? POWER_LABEL[effectivePower]
     : {
         text: "Chưa đo thực tế",
         cls: "text-slate-600 bg-slate-100 border-slate-200",
@@ -383,26 +416,16 @@ export default function WorkspaceScorecard({
           )}
         </section>
 
-        {/* Ưu đãi hiện có (Real-time / Xác thực) */}
-        <div
-          className={`flex items-start gap-2.5 p-3 rounded-xl border ${
-            cafe.voucher
-              ? "bg-amber-50 border-amber-200 text-amber-900"
-              : "bg-slate-50 border-slate-200 text-slate-600"
-          }`}
-        >
-          <Ticket
-            className={`w-4 h-4 shrink-0 mt-0.5 ${
-              cafe.voucher ? "text-amber-600" : "text-slate-400"
-            }`}
-          />
-          <div className="text-xs">
-            <span className="font-bold block">Ưu đãi hiện có</span>
-            <span>
-              {cafe.voucher ?? "Chưa có ưu đãi được xác thực từ quán."}
-            </span>
+        {/* Ưu đãi hiện có (chỉ hiển thị khi có ưu đãi xác thực) */}
+        {cafe.voucher && (
+          <div className="flex items-start gap-2.5 p-3 rounded-xl border bg-amber-50 border-amber-200 text-amber-900">
+            <Ticket className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+            <div className="text-xs">
+              <span className="font-bold block">Ưu đãi hiện có</span>
+              <span>{cafe.voucher}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 1. Độ ồn theo khung giờ */}
         {cafe.noise && (
@@ -442,14 +465,14 @@ export default function WorkspaceScorecard({
               <Wifi className="w-4 h-4 text-indigo-500" />
               <span>Wi-Fi thực tế</span>
             </div>
-            {cafe.wifiDownload != null ? (
+            {effectiveWifiDownload != null ? (
               <>
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold text-slate-900">
-                    {cafe.wifiDownload}
+                    {effectiveWifiDownload}
                   </span>
                   <span className="text-xs text-slate-500">Mbps ↓</span>
-                  {cafe.wifiUpload != null && (
+                  {cafe.wifiUpload != null && wifiReadings.length === 0 && (
                     <>
                       <span className="text-sm font-semibold text-slate-600 ml-1">
                         {cafe.wifiUpload}
@@ -458,9 +481,9 @@ export default function WorkspaceScorecard({
                     </>
                   )}
                 </div>
-                {cafe.wifiMeasuredAt && (
+                {wifiSourceLabel && (
                   <div className="text-[11px] text-slate-400 mt-1">
-                    Đo gần nhất: {cafe.wifiMeasuredAt}
+                    {wifiSourceLabel}
                   </div>
                 )}
               </>
@@ -482,7 +505,13 @@ export default function WorkspaceScorecard({
               {powerInfo.text}
             </span>
             <div className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {cafe.openHours}
+              {powerVotes.length > 0 ? (
+                <span>Từ {powerVotes.length} đánh giá thực tế</span>
+              ) : (
+                <>
+                  <Clock className="w-3 h-3" /> {cafe.openHours}
+                </>
+              )}
             </div>
           </div>
         </section>
