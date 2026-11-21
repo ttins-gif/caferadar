@@ -205,9 +205,12 @@ export default function DeadlineRadarApp() {
       if (powerVotes.length > 0) {
         const counts = { all: 0, scattered: 0, rare: 0 };
         for (const p of powerVotes) counts[p]++;
-        effectivePower = (["all", "scattered", "rare"] as const).sort(
-          (a, b) => counts[b] - counts[a]
-        )[0];
+        const powerKeys: Array<"all" | "scattered" | "rare"> = [
+          "all",
+          "scattered",
+          "rare",
+        ];
+        effectivePower = powerKeys.sort((a, b) => counts[b] - counts[a])[0];
       }
 
       // Không gian theo số đông đánh giá user
@@ -219,9 +222,10 @@ export default function DeadlineRadarApp() {
       if (spaceVotes.length > 0) {
         const counts = { spacious_quiet: 0, cozy_moderate: 0, small_noisy: 0 };
         for (const s of spaceVotes) counts[s]++;
-        effectiveSpace = (
-          ["spacious_quiet", "cozy_moderate", "small_noisy"] as const
-        ).sort((a, b) => counts[b] - counts[a])[0];
+        const spaceKeys: Array<
+          "spacious_quiet" | "cozy_moderate" | "small_noisy"
+        > = ["spacious_quiet", "cozy_moderate", "small_noisy"];
+        effectiveSpace = spaceKeys.sort((a, b) => counts[b] - counts[a])[0];
       }
 
       if (filters.powerEveryTable && effectivePower !== "all") return false;
