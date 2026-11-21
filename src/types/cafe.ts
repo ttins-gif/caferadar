@@ -77,6 +77,8 @@ export interface Cafe {
   featured?: boolean;
   /** Ưu đãi hiện có (nếu có xác thực từ quán) */
   voucher?: string;
+  /** Ảnh không gian quán (từ nguồn chính chủ hoặc Admin cập nhật) */
+  photos?: string[];
   tags: string[];
 }
 
