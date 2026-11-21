@@ -21,11 +21,19 @@ import {
   updateUserAvatar,
   UserAccount,
 } from "@/lib/auth";
+import { updateReviewsAvatarForUser } from "@/lib/storage";
+import {
+  fetchCloudReviews,
+  insertCloudReview,
+  isSupabaseConfigured,
+} from "@/lib/supabase";
 
 export default function AccountProfilePage() {
   const [user, setUser] = useState<UserAccount | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [gmailInput, setGmailInput] = useState("");
+  const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -74,6 +82,7 @@ export default function AccountProfilePage() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     if (file.size > 1024 * 1024) {
       setMessage({ type: "error", text: "Ảnh đại diện tối đa 1MB." });
@@ -82,11 +91,53 @@ export default function AccountProfilePage() {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        updateUserAvatar(reader.result);
-        setMessage({ type: "success", text: "Đã cập nhật ảnh đại diện!" });
+        // Mở hộp thoại xem trước (review ảnh) để user Xác nhận hoặc Hủy
+        setPendingAvatar(reader.result);
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleConfirmAvatar = async () => {
+    if (!pendingAvatar || !user) return;
+    setSavingAvatar(true);
+    try {
+      updateUserAvatar(pendingAvatar);
+      // Cập nhật avatar đồng bộ trên tất cả đánh giá của user (local + Supabase)
+      const localUpdated = updateReviewsAvatarForUser(
+        user.id,
+        user.displayName,
+        pendingAvatar
+      );
+      if (isSupabaseConfigured) {
+        const cloudReviews = await fetchCloudReviews();
+        const toSync = cloudReviews
+          .filter(
+            (r) =>
+              r.authorId === user.id ||
+              (!r.authorId && r.authorName === user.displayName)
+          )
+          .map((r) => ({
+            ...r,
+            authorId: user.id,
+            authorAvatar: pendingAvatar,
+          }));
+        const allToSync = [...toSync, ...localUpdated];
+        const seen = new Set<string>();
+        for (const rev of allToSync) {
+          if (seen.has(rev.id)) continue;
+          seen.add(rev.id);
+          await insertCloudReview(rev);
+        }
+      }
+      setPendingAvatar(null);
+      setMessage({
+        type: "success",
+        text: "Đã cập nhật ảnh đại diện và đồng bộ sang toàn bộ đánh giá của bạn!",
+      });
+    } finally {
+      setSavingAvatar(false);
+    }
   };
 
   const handleSaveDisplayName = (e: React.FormEvent) => {
@@ -259,6 +310,45 @@ export default function AccountProfilePage() {
           )}
         </section>
       </main>
+
+      {/* Modal xem trước (review) ảnh đại diện mới trước khi Xác nhận / Hủy */}
+      {pendingAvatar && (
+        <div className="fixed inset-0 z-[1100] bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-sm p-6 text-center space-y-4">
+            <h2 className="text-base font-bold text-slate-900">
+              Xem trước ảnh đại diện mới
+            </h2>
+            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-indigo-100 shadow-sm mx-auto">
+              <img
+                src={pendingAvatar}
+                alt="Preview avatar"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <p className="text-xs text-slate-500">
+              Ảnh mới sẽ tự động cập nhật trên hồ sơ và tất cả các bài đánh giá của bạn.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                disabled={savingAvatar}
+                onClick={() => setPendingAvatar(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold cursor-pointer disabled:opacity-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={savingAvatar}
+                onClick={handleConfirmAvatar}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+              >
+                {savingAvatar ? "Đang lưu..." : "Xác nhận lưu ảnh"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
