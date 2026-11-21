@@ -90,9 +90,7 @@ export default function DeadlineRadarApp() {
   const [reviews, setReviews] = useState<CafeReview[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
-  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(
-    SEED_CAFES[0]?.id ?? null
-  );
+  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCafe, setEditingCafe] = useState<Cafe | null>(null);
@@ -210,6 +208,18 @@ export default function DeadlineRadarApp() {
     [allCafes, selectedCafeId]
   );
 
+  const hasActiveSearchOrFilter =
+    filters.search.trim().length > 0 ||
+    filters.district !== "ALL" ||
+    filters.powerEveryTable ||
+    filters.fastWifi ||
+    filters.open24h ||
+    filters.quietForCalls ||
+    filters.ergonomicDesk ||
+    filters.stayFriendly ||
+    onlyFavorites ||
+    Boolean(userLocation);
+
   const handleSelectCafe = useCallback((cafe: Cafe) => {
     setSelectedCafeId(cafe.id);
   }, []);
@@ -317,12 +327,13 @@ export default function DeadlineRadarApp() {
 
       {/* Main Split Workspace */}
       <main className="flex-1 flex relative overflow-hidden">
-        {/* Left Sidebar */}
-        <aside
-          className={`${
-            mobileView === "list" ? "flex" : "hidden"
-          } lg:flex flex-col w-full lg:w-[360px] xl:w-[390px] bg-white border-r border-slate-200 z-20 shrink-0 overflow-hidden`}
-        >
+        {/* Left Sidebar: Chỉ hiện khi người dùng tìm kiếm hoặc lọc quán (hoặc bật danh sách trên mobile) */}
+        {(hasActiveSearchOrFilter || mobileView === "list") && (
+          <aside
+            className={`${
+              mobileView === "list" ? "flex" : "hidden"
+            } lg:flex flex-col w-full lg:w-[360px] xl:w-[390px] bg-white border-r border-slate-200 z-20 shrink-0 overflow-hidden`}
+          >
           <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/70">
             <span className="font-semibold text-slate-700">
               {filteredCafes.length}/{allCafes.length} quán phù hợp
@@ -465,6 +476,7 @@ export default function DeadlineRadarApp() {
             )}
           </div>
         </aside>
+        )}
 
         {/* Center: Interactive Map */}
         <section
