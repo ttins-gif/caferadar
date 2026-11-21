@@ -173,6 +173,9 @@ export const SEED_CAFES: Cafe[] = [
       "Không gian rang xay Specialty Coffee rộng thoáng tại khu An Thượng, Đà Nẵng, có phục vụ bánh ngọt và brunch.",
     sourceName: "Website 43 Factory / XLIII",
     sourceUrl: "https://43factory.coffee/",
+    photos: [
+      "https://43factory.coffee/wp-content/uploads/202208110330-Mo-hinh-ca-phe-ca-Koi-tai-43-Factory-Coffee-Roaster-Da-Nang-1920x1120.jpg",
+    ],
     tags: ["Specialty Coffee", "Đà Nẵng"],
   },
   {
@@ -196,6 +199,7 @@ export const SEED_CAFES: Cafe[] = [
       "Chuỗi cafe mở 24/7 xuyên đêm (cả lễ, Tết), không gian rộng, có máy lạnh và bánh ngọt phục vụ khách ngồi lâu.",
     sourceName: "Website KAI Coffee",
     sourceUrl: "https://kaicoffee.vn/",
+    photos: ["https://kaicoffee.vn/assets/images/editorial/hero-landscape.webp"],
     tags: ["Mở 24/7", "Quận 1"],
   },
   {
@@ -219,6 +223,7 @@ export const SEED_CAFES: Cafe[] = [
       "Chi nhánh Bình Thạnh mở cửa 24/7, quen thuộc với sinh viên và dân văn phòng chạy deadline đêm.",
     sourceName: "Website KAI Coffee",
     sourceUrl: "https://kaicoffee.vn/",
+    photos: ["https://kaicoffee.vn/assets/images/editorial/hero-landscape.webp"],
     tags: ["Mở 24/7", "Bình Thạnh"],
   },
   {
@@ -244,6 +249,7 @@ export const SEED_CAFES: Cafe[] = [
       "Mô hình cafe kết hợp giường nghỉ riêng tư phong cách Nhật (gói Little Recharge 80k/1h + 1 nước, Mini Staycation 240k/5h).",
     sourceName: "Website Chidori",
     sourceUrl: "https://chidori.vn/",
+    photos: ["https://chidori.vn/assets/home/hero-86c0d6d5.jpg"],
     tags: ["Riêng tư", "Bình Thạnh"],
   },
 ];
