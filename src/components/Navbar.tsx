@@ -68,9 +68,11 @@ export default function Navbar({ onOpenAddModal }: NavbarProps) {
         <div className="max-w-[1600px] mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2">
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
-              <Radar className="w-5 h-5" />
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="CafeRadar"
+              className="w-9 h-9 rounded-xl object-cover shadow-sm group-hover:scale-105 transition"
+            />
             <div className="leading-tight">
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
