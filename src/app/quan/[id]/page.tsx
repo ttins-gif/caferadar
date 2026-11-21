@@ -316,7 +316,7 @@ export default function CafeDetailPage() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
               <Camera className="w-4 h-4 text-indigo-600" />
-              <span>Hình ảnh không gian quán</span>
+              <span>Hình ảnh</span>
             </div>
             <a
               href={googleMapsUrl}
