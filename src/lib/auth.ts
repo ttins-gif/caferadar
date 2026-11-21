@@ -13,12 +13,20 @@ export interface UserAccount {
   createdAt: string;
 }
 
-const ROLE_STORAGE_KEY = "caferadar_role_v1";
 const ACCOUNTS_STORAGE_KEY = "caferadar_accounts_v1";
 const CURRENT_USER_ID_KEY = "caferadar_current_user_id_v1";
-const ADMIN_PASSCODE =
-  process.env.NEXT_PUBLIC_ADMIN_PASSCODE || "caferadar2026";
+const ADMIN_EMAILS = (
+  process.env.NEXT_PUBLIC_ADMIN_EMAILS || "doletrungtin2110@gmail.com"
+)
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 export const DISPLAY_NAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 ngày
+
+export function isAdminEmail(email?: string): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
 
 function emitAuthChange() {
   if (typeof window !== "undefined") {
@@ -67,42 +75,14 @@ export function getCurrentUser(): UserAccount | null {
 }
 
 export function getStoredRole(): UserRole {
-  if (typeof window === "undefined") return "user";
-  try {
-    if (localStorage.getItem(ROLE_STORAGE_KEY) === "admin") return "admin";
-    const user = getCurrentUser();
-    return user?.role === "admin" ? "admin" : "user";
-  } catch {
-    return "user";
-  }
-}
-
-export function loginAsAdmin(passcode: string): boolean {
-  if (passcode.trim() === ADMIN_PASSCODE) {
-    try {
-      localStorage.setItem(ROLE_STORAGE_KEY, "admin");
-    } catch {
-      // ignore
-    }
-    emitAuthChange();
-    return true;
-  }
-  return false;
-}
-
-export function logoutAdmin(): void {
-  try {
-    localStorage.setItem(ROLE_STORAGE_KEY, "user");
-  } catch {
-    // ignore
-  }
-  emitAuthChange();
+  const user = getCurrentUser();
+  if (!user) return "user";
+  return isAdminEmail(user.gmail) || user.role === "admin" ? "admin" : "user";
 }
 
 export function logoutUser(): void {
   try {
     localStorage.removeItem(CURRENT_USER_ID_KEY);
-    localStorage.setItem(ROLE_STORAGE_KEY, "user");
   } catch {
     // ignore
   }
@@ -155,7 +135,7 @@ export function registerLocalAccount(params: {
     gmail: cleanGmail,
     provider: "local",
     avatarUrl: params.avatarUrl || undefined,
-    role: "user",
+    role: isAdminEmail(cleanGmail) ? "admin" : "user",
     createdAt: now,
   };
 
@@ -210,13 +190,22 @@ export function loginWithGoogleAccount(params: {
   const accounts = loadAllAccounts();
   const existing = accounts.find((a) => a.gmail === cleanGmail);
   if (existing) {
+    const syncedRole: UserRole = isAdminEmail(cleanGmail) ? "admin" : "user";
+    const updatedExisting: UserAccount = {
+      ...existing,
+      role: syncedRole,
+      avatarUrl: params.avatarUrl || existing.avatarUrl,
+    };
+    saveAllAccounts(
+      accounts.map((a) => (a.id === existing.id ? updatedExisting : a))
+    );
     try {
       localStorage.setItem(CURRENT_USER_ID_KEY, existing.id);
     } catch {
       // ignore
     }
     emitAuthChange();
-    return { ok: true, user: existing };
+    return { ok: true, user: updatedExisting };
   }
 
   // Tạo username cố định từ phần trước @gmail.com
@@ -239,7 +228,7 @@ export function loginWithGoogleAccount(params: {
     gmail: cleanGmail,
     provider: "google",
     avatarUrl: params.avatarUrl || undefined,
-    role: "user",
+    role: isAdminEmail(cleanGmail) ? "admin" : "user",
     createdAt: now,
   };
 
