@@ -23,7 +23,9 @@ export interface LiveCheckIn {
 export interface CafeReview {
   id: string;
   cafeId: string;
+  authorId?: string;
   authorName: string;
+  authorAvatar?: string;
   rating: number; // 1 - 5
   wifiDownload?: number;
   powerOutlets?: PowerOutletCoverage;
