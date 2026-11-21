@@ -12,6 +12,7 @@ import {
   LogOut,
   Plus,
   LogIn,
+  MessageSquareHeart,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -30,6 +31,7 @@ const BASE_NAV_ITEMS = [
   { href: "/", label: "Bản đồ", icon: MapIcon },
   { href: "/danh-sach", label: "Bảng xếp hạng", icon: LayoutGrid },
   { href: "/cong-dong", label: "Live 6h", icon: Radio },
+  { href: "/gop-y", label: "Góp ý", icon: MessageSquareHeart },
 ];
 
 export default function Navbar({ onOpenAddModal }: NavbarProps) {
