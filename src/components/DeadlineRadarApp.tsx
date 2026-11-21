@@ -11,6 +11,7 @@ import {
   Clock,
   Radio,
   Bookmark,
+  Eye,
 } from "lucide-react";
 import { SEED_CAFES } from "@/data/seedCafes";
 import {
@@ -43,6 +44,7 @@ import {
   deleteCloudCafe,
   deleteCloudCheckIn,
   deleteCloudReview,
+  fetchAllCafeViewCounts,
   fetchCloudCafes,
   fetchCloudCheckIns,
   fetchCloudReviews,
@@ -88,6 +90,7 @@ export default function DeadlineRadarApp() {
   const [allCafes, setAllCafes] = useState<Cafe[]>(SEED_CAFES);
   const [checkIns, setCheckIns] = useState<LiveCheckIn[]>([]);
   const [reviews, setReviews] = useState<CafeReview[]>([]);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
   const [favorites, setFavorites] = useState<string[]>([]);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
@@ -118,6 +121,7 @@ export default function DeadlineRadarApp() {
     setCheckIns(loadActiveCheckIns());
     setReviews(loadReviews());
     setFavorites(loadFavorites());
+    void fetchAllCafeViewCounts().then(setViewCounts);
 
     // Đồng bộ dữ liệu công khai từ Supabase Database nếu đã cấu hình
     if (isSupabaseConfigured) {
@@ -493,6 +497,13 @@ export default function DeadlineRadarApp() {
                           <h3 className="font-bold text-sm text-slate-900 truncate">
                             {cafe.name}
                           </h3>
+                          <span
+                            title="Lượt xem chi tiết quán (mỗi tài khoản 1 lần)"
+                            className="inline-flex items-center gap-0.5 text-[11px] font-medium text-slate-400 shrink-0"
+                          >
+                            <Eye className="w-3 h-3" />
+                            {viewCounts[cafe.id] ?? 0}
+                          </span>
                           {cafe.featured && (
                             <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                           )}
