@@ -1,0 +1,22 @@
+{
+  "name": "CafeRadar — Bản đồ Quán Cafe Chạy Deadline Việt Nam",
+  "short_name": "CafeRadar",
+  "description": "Tìm nhanh quán cafe chạy deadline trên toàn Việt Nam với đánh giá thực tế từ cộng đồng.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
