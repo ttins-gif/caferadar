@@ -69,9 +69,9 @@ export default function Navbar({ onOpenAddModal }: NavbarProps) {
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
             <img
-              src="/logo.jpg"
+              src="/favicon.svg"
               alt="CafeRadar"
-              className="w-9 h-9 rounded-xl object-cover shadow-sm group-hover:scale-105 transition"
+              className="w-9 h-9 rounded-xl shadow-sm group-hover:scale-105 transition"
             />
             <div className="leading-tight">
               <div className="flex items-center gap-1.5">
