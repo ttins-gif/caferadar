@@ -14,6 +14,9 @@ export interface UserAccount {
   role: UserRole;
   /** Admin có thể tự bật/tắt đặc quyền Người dùng năng nổ cho bản thân */
   activeContributorOverride?: boolean;
+  /** Danh sách ID quán đã lưu (đồng bộ đa thiết bị) */
+  favorites?: string[];
+  updatedAt?: string;
   createdAt: string;
 }
 
@@ -300,6 +303,7 @@ export function updateDisplayName(newDisplayName: string): {
     ...user,
     displayName: clean,
     displayNameUpdatedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
   pushAccountToCloud(updated);
@@ -311,7 +315,11 @@ export function updateUserAvatar(avatarUrl: string): UserAccount | null {
   const user = getCurrentUser();
   if (!user) return null;
   const accounts = loadAllAccounts();
-  const updated: UserAccount = { ...user, avatarUrl };
+  const updated: UserAccount = {
+    ...user,
+    avatarUrl,
+    updatedAt: new Date().toISOString(),
+  };
   saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
   pushAccountToCloud(updated);
   emitAuthChange();
@@ -360,22 +368,40 @@ export async function syncCurrentUserFromCloud(): Promise<UserAccount | null> {
   const key = getAccountSyncKey(local);
   const cloud = await fetchCloudAccount<UserAccount>(key);
   if (!cloud) {
-    // Chưa có trên cloud -> đẩy bản local lên cloud luôn
     pushAccountToCloud(local);
     return local;
   }
 
-  const merged: UserAccount = {
-    ...local,
-    ...cloud,
-    role: isAdminEmail(cloud.gmail || local.gmail) ? "admin" : cloud.role,
-  };
+  // So sánh thời điểm cập nhật mới nhất để thiết bị cũ không bao giờ ghi đè thiết bị mới
+  const localTime = new Date(local.updatedAt || local.createdAt || 0).getTime();
+  const cloudTime = new Date(cloud.updatedAt || cloud.createdAt || 0).getTime();
+  const localHasCustomAvatar = Boolean(local.avatarUrl?.startsWith("data:image/"));
+  const cloudHasCustomAvatar = Boolean(cloud.avatarUrl?.startsWith("data:image/"));
+
+  const useLocalAsBase =
+    localTime > cloudTime || (localHasCustomAvatar && !cloudHasCustomAvatar);
+
+  const merged: UserAccount = useLocalAsBase
+    ? {
+        ...cloud,
+        ...local,
+        role: isAdminEmail(local.gmail || cloud.gmail) ? "admin" : local.role,
+      }
+    : {
+        ...local,
+        ...cloud,
+        role: isAdminEmail(cloud.gmail || local.gmail) ? "admin" : cloud.role,
+      };
+
   const accounts = loadAllAccounts();
   const exists = accounts.some((a) => a.id === merged.id);
   const nextAccounts = exists
     ? accounts.map((a) => (a.id === merged.id ? merged : a))
     : [merged, ...accounts.filter((a) => a.id !== local.id)];
   saveAllAccounts(nextAccounts);
+  if (useLocalAsBase) {
+    pushAccountToCloud(merged);
+  }
   try {
     localStorage.setItem(CURRENT_USER_ID_KEY, merged.id);
   } catch {
@@ -394,6 +420,7 @@ export function toggleAdminSelfContributorBadge(): UserAccount | null {
   const updated: UserAccount = {
     ...user,
     activeContributorOverride: !user.activeContributorOverride,
+    updatedAt: new Date().toISOString(),
   };
   saveAllAccounts(accounts.map((a) => (a.id === user.id ? updated : a)));
   pushAccountToCloud(updated);
