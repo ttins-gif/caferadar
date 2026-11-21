@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+  </defs>
+  <!-- Transparent outer corners, rounded indigo-violet squircle -->
+  <rect width="64" height="64" rx="16" fill="url(#bg)" />
+  <!-- Radar arcs in warm golden-amber -->
+  <path d="M12 36 A20 20 0 0 1 52 36" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" opacity="0.95" />
+  <path d="M18 36 A14 14 0 0 1 46 36" stroke="#fde68a" stroke-width="3.5" stroke-linecap="round" opacity="0.85" />
+  <!-- Bold white map pin -->
+  <path d="M32 19 C24.8 19 19 24.8 19 32 C19 41.5 32 54 32 54 C32 54 45 41.5 45 32 C45 24.8 39.2 19 32 19 Z" fill="#ffffff" />
+  <!-- Stylized coffee cup inside pin -->
+  <path d="M26 28 H36 V34 C36 36.2 34.2 38 32 38 H30 C27.8 38 26 36.2 26 34 V28 Z" fill="#4f46e5" />
+  <path d="M36 29.5 H38 C39.1 29.5 40 30.4 40 31.5 C40 32.6 39.1 33.5 38 33.5 H36" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" />
+</svg>
