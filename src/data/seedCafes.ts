@@ -25,8 +25,8 @@ export const SEED_CAFES: Cafe[] = [
     stayFriendly: true,
     priceRange: "70.000đ – 200.000đ",
     staffNote:
-      "Specialty coffee nằm ở lầu 2 chung cư cũ, không gian yên tĩnh phù hợp làm việc và đọc sách (last order khoảng 20:30).",
-    sourceName: "Google Maps / Foody",
+      "Địa điểm nổi tiếng phục vụ espresso, cà phê lạnh, cà phê kiểu pour-over và bữa sáng trong không gian thoải mái.",
+    sourceName: "Google Maps",
     sourceUrl:
       "https://www.google.com/maps/search/?api=1&query=The+Workshop+Coffee+27+Ngo+Duc+Ke+Quan+1",
     tags: ["Specialty Coffee", "Quận 1"],
