@@ -287,12 +287,33 @@ export default function DeadlineRadarApp() {
     saveFavorites(next);
   };
 
+  const fallbackToIpLocation = async () => {
+    try {
+      const res = await fetch("https://get.geojs.io/v1/ip/geo.json");
+      if (!res.ok) throw new Error("IP geo failed");
+      const data: { latitude?: string; longitude?: string } = await res.json();
+      const lat = Number(data.latitude);
+      const lng = Number(data.longitude);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        setUserLocation({ lat, lng });
+        setIsLocating(false);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    setIsLocating(false);
+    alert(
+      "Không thể xác định vị trí tự động. Vui lòng bật quyền Vị trí (Location) cho trình duyệt và thử lại."
+    );
+  };
+
   const handleLocateMe = () => {
+    setIsLocating(true);
     if (!navigator.geolocation) {
-      alert("Trình duyệt không hỗ trợ định vị GPS.");
+      void fallbackToIpLocation();
       return;
     }
-    setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation({
@@ -302,12 +323,10 @@ export default function DeadlineRadarApp() {
         setIsLocating(false);
       },
       () => {
-        setIsLocating(false);
-        alert(
-          "Không thể lấy vị trí của bạn. Hãy cấp quyền vị trí trên trình duyệt."
-        );
+        // Nếu GPS trình duyệt bị tắt hoặc không khả dụng trên PC, tự động định vị theo IP
+        void fallbackToIpLocation();
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 }
     );
   };
 
